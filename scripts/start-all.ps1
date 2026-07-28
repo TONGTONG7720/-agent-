@@ -6,7 +6,7 @@ $root = Split-Path $PSScriptRoot -Parent
 
 Write-Host "[1/4] 启动 LiteLLM 网关 (:4000) ..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command",
-  "cd '$root\llm-gateway'; litellm --config litellm-config.yaml --port 4000"
+  "cd '$root\llm-gateway'; .\start-gateway.ps1"
 
 Write-Host "[2/4] 启动 Agent 服务 (:8001) ..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command",

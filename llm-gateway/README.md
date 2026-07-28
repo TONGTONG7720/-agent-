@@ -13,10 +13,11 @@ Copy-Item .env.example .env    # 然后编辑 .env 填入你的真实 Key
 
 ```powershell
 pip install "litellm[proxy]"
-litellm --config litellm-config.yaml --port 4000
+powershell -ExecutionPolicy Bypass -File start-gateway.ps1
 ```
 
-> litellm 会自动读取当前目录 `.env`。
+> ⚠️ litellm **不会自动读取 `.env`**，必须用 `start-gateway.ps1`（它会先把 `.env`
+> 加载进进程环境再启动）。直接跑 `litellm --config ...` 会因缺 Key 报 500。
 
 ## 启动方式二：Docker
 
