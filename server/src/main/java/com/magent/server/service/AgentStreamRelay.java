@@ -43,7 +43,9 @@ public class AgentStreamRelay {
     private void consume(Long taskId) {
         String url = props.getAgentBaseUrl() + "/agent/tasks/T" + taskId + "/stream";
         try {
-            HttpClient client = HttpClient.newHttpClient();
+            HttpClient client = HttpClient.newBuilder()
+                    .version(HttpClient.Version.HTTP_1_1)   // 同 HttpAgentClient：避免 h2c 升级头
+                    .build();
             HttpRequest request = HttpRequest.newBuilder(URI.create(url))
                     .header("X-Internal-Token", props.getInternalToken())
                     .GET().build();

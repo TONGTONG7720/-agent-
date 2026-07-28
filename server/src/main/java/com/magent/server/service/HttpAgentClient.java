@@ -22,7 +22,9 @@ public class HttpAgentClient implements AgentClient {
 
     private final AppProps props;
     private final ObjectMapper om = new ObjectMapper();
+    // 必须强制 HTTP/1.1：JDK 默认的 h2c 升级头会导致 uvicorn 读不到请求体（422）
     private final HttpClient client = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)
             .connectTimeout(Duration.ofSeconds(5)).build();
 
     @Override
