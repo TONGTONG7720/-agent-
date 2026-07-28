@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import queue
+import threading
 
 from langgraph.types import Command
 
@@ -15,36 +17,49 @@ _ARTIFACTS = {
     "tester": ("test_report", "TEST_REPORT.md", "test_report"),
 }
 
+_POLL_SECONDS = 0.05
+
 
 class TaskManager:
-    """任务运行器：启动图执行、事件队列、resume/cancel。"""
+    """任务运行器：启动图执行、事件队列、resume/cancel。
+
+    图执行跑在自有的常驻事件循环线程上，事件队列用线程安全的 queue.Queue，
+    与 Web 服务器的事件循环解耦（TestClient 每请求独立循环、多 worker 场景下依然正确）。
+    """
 
     def __init__(self, graph):
         self.graph = graph
-        self.queues: dict[str, asyncio.Queue] = {}
+        self.queues: dict[str, queue.Queue] = {}
         self.seqs: dict[str, int] = {}
-        self.jobs: dict[str, asyncio.Task] = {}
+        self.jobs: dict[str, object] = {}     # concurrent.futures.Future
+        self._loop = asyncio.new_event_loop()
+        threading.Thread(target=self._loop.run_forever,
+                         daemon=True, name="task-manager-loop").start()
 
     def _emit(self, task_id: str, event: str, agent: str | None = None, data: dict | None = None):
         self.seqs[task_id] = self.seqs.get(task_id, 0) + 1
         ev = AgentEvent(event=event, task_id=task_id, agent=agent,
                         seq=self.seqs[task_id], data=data or {})
-        self.queues[task_id].put_nowait(ev)
+        self.queues[task_id].put(ev)
+
+    def _submit(self, task_id: str, payload):
+        self.jobs[task_id] = asyncio.run_coroutine_threadsafe(
+            self._run(task_id, payload), self._loop)
 
     def start(self, req: StartTaskRequest):
-        if req.task_id in self.jobs and not self.jobs[req.task_id].done():
+        job = self.jobs.get(req.task_id)
+        if job and not job.done():
             raise ValueError(f"task {req.task_id} already running")
-        self.queues.setdefault(req.task_id, asyncio.Queue())
+        self.queues.setdefault(req.task_id, queue.Queue())
         payload = {"task_id": req.task_id, "requirement": req.requirement,
                    "auto_mode": req.auto_mode, "iteration_count": 0,
                    "role_models": req.role_models, "role_prompts": req.role_prompts}
-        self.jobs[req.task_id] = asyncio.create_task(self._run(req.task_id, payload))
+        self._submit(req.task_id, payload)
 
     def resume(self, task_id: str, decision: str, comment: str):
         if task_id not in self.queues:
             raise KeyError(task_id)
-        cmd = Command(resume={"decision": decision, "comment": comment})
-        self.jobs[task_id] = asyncio.create_task(self._run(task_id, cmd))
+        self._submit(task_id, Command(resume={"decision": decision, "comment": comment}))
 
     def cancel(self, task_id: str):
         job = self.jobs.get(task_id)
@@ -53,9 +68,13 @@ class TaskManager:
             self._emit(task_id, "task_failed", data={"error": "canceled"})
 
     async def stream(self, task_id: str):
-        queue = self.queues.setdefault(task_id, asyncio.Queue())
+        q = self.queues.setdefault(task_id, queue.Queue())
         while True:
-            ev = await queue.get()
+            try:
+                ev = q.get_nowait()
+            except queue.Empty:
+                await asyncio.sleep(_POLL_SECONDS)
+                continue
             yield ev
             if ev.event in ("task_done", "task_failed"):
                 return
