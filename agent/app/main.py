@@ -1,3 +1,5 @@
+import hmac
+
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import StreamingResponse
 
@@ -10,7 +12,8 @@ from .schemas import ResumeRequest, StartTaskRequest
 
 
 def check_token(x_internal_token: str = Header(default="")):
-    if x_internal_token != settings.internal_token:
+    # 常量时间比较，避免时序侧信道
+    if not hmac.compare_digest(x_internal_token.encode(), settings.internal_token.encode()):
         raise HTTPException(status_code=401, detail="invalid internal token")
 
 

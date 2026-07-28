@@ -32,14 +32,17 @@ class TaskManager:
         self.queues: dict[str, queue.Queue] = {}
         self.seqs: dict[str, int] = {}
         self.jobs: dict[str, object] = {}     # concurrent.futures.Future
+        self._seq_lock = threading.Lock()     # cancel() 与图执行线程可能并发 _emit
         self._loop = asyncio.new_event_loop()
         threading.Thread(target=self._loop.run_forever,
                          daemon=True, name="task-manager-loop").start()
 
     def _emit(self, task_id: str, event: str, agent: str | None = None, data: dict | None = None):
-        self.seqs[task_id] = self.seqs.get(task_id, 0) + 1
+        with self._seq_lock:
+            self.seqs[task_id] = self.seqs.get(task_id, 0) + 1
+            seq = self.seqs[task_id]
         ev = AgentEvent(event=event, task_id=task_id, agent=agent,
-                        seq=self.seqs[task_id], data=data or {})
+                        seq=seq, data=data or {})
         self.queues[task_id].put(ev)
 
     def _submit(self, task_id: str, payload):
@@ -77,7 +80,18 @@ class TaskManager:
                 continue
             yield ev
             if ev.event in ("task_done", "task_failed"):
+                self._cleanup(task_id)
                 return
+
+    def _cleanup(self, task_id: str):
+        """终态事件被消费后释放 per-task 资源，避免长期运行无界增长。
+
+        注意不能在客户端断线时清理（任务可能还在跑，_emit 会找不到队列）。
+        """
+        self.queues.pop(task_id, None)
+        with self._seq_lock:
+            self.seqs.pop(task_id, None)
+        self.jobs.pop(task_id, None)
 
     def _handle_node_end(self, task_id: str, node: str, out: dict):
         out = out or {}

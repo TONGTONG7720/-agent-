@@ -133,8 +133,8 @@
 |---|---|---|
 | node_start / node_end | 角色开始/结束工作 | 节点名 |
 | agent_message | 角色流式输出（打字机效果） | {delta, content} |
-| artifact_created | 产物生成 | {artifact_id, name, type, path} |
-| interrupt | 到达人审点，任务挂起 | {checkpoint, question, payload} |
+| artifact_created | 产物生成 | {name, type, path}（artifact_id 由 SpringBoot 落库时生成并在转发前端时补齐） |
+| interrupt | 到达人审点，任务挂起 | {gate, question, payload}（checkpoint 由 LangGraph 内部管理，resume 仅需 task_id） |
 | task_done / task_failed | 终态 | 结果摘要 / 错误信息 |
 
 事件由 SpringBoot 消费时写入 `task_event` 表；前端刷新/断线后按 seq 补拉历史，
