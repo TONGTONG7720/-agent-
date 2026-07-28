@@ -1,0 +1,40 @@
+# LiteLLM 网关配置 —— 所有模型统一为 OpenAI 兼容接口
+# Key 一律走环境变量（.env），不要写死在本文件！
+# 文档: https://docs.litellm.ai/docs/proxy/configs
+
+model_list:
+  # ── 通义千问（阿里云百炼 DashScope，OpenAI 兼容模式）──
+  - model_name: qwen-plus
+    litellm_params:
+      model: openai/qwen-plus
+      api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api_key: os.environ/DASHSCOPE_API_KEY
+
+  # ── DeepSeek 官方 ──
+  - model_name: deepseek-v3
+    litellm_params:
+      model: deepseek/deepseek-chat
+      api_key: os.environ/DEEPSEEK_API_KEY
+
+  # ── 智谱 GLM ──
+  - model_name: glm-4
+    litellm_params:
+      model: openai/glm-4-plus
+      api_base: https://open.bigmodel.cn/api/paas/v4
+      api_key: os.environ/ZHIPU_API_KEY
+
+  # ── 第三方运营商（任何 OpenAI 兼容中转站）示例 ──
+  # 同一 model_name 注册多条即自动负载均衡/故障切换
+  - model_name: relay-gpt
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_base: os.environ/RELAY_BASE_URL      # 如 https://api.xxx.com/v1
+      api_key: os.environ/RELAY_API_KEY
+
+litellm_settings:
+  num_retries: 2                # 网关内自动重试（设计文档第5节第一道兜底）
+  request_timeout: 120
+  drop_params: true             # 忽略下游不支持的参数
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY   # agent 服务用它做 api_key
