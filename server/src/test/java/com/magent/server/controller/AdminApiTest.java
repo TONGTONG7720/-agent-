@@ -6,8 +6,10 @@ import java.nio.file.Path;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.magent.server.config.AppProps;
 import com.magent.server.entity.Artifact;
+import com.magent.server.entity.LlmModel;
 import com.magent.server.entity.Task;
 import com.magent.server.mapper.ArtifactMapper;
 import com.magent.server.mapper.LlmModelMapper;
@@ -107,9 +109,10 @@ class AdminApiTest {
                         .contentType(APPLICATION_JSON)
                         .content("{\"name\":\"通义\",\"litellmModelName\":\"qwen-plus\",\"apiKey\":\"sk-abcdef1234\"}"))
                 .andExpect(status().isOk());
-        // 落库为密文
-        assertThat(modelMapper.selectList(null).get(0).getApiKeyEnc())
-                .isNotBlank().doesNotContain("sk-abcdef1234");
+        // 落库为密文（按名字精确取刚建的模型，避免受种子模型干扰）
+        LlmModel created = modelMapper.selectOne(
+                new QueryWrapper<LlmModel>().eq("name", "通义"));
+        assertThat(created.getApiKeyEnc()).isNotBlank().doesNotContain("sk-abcdef1234");
         // 列表返回脱敏，绝无明文与密文字段
         MvcResult r = mvc.perform(get("/api/models").header("satoken", token))
                 .andExpect(status().isOk()).andReturn();
