@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/magent_biz?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:root}
+  sql:
+    init:
+      mode: always
+      continue-on-error: false
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+app:
+  agent-base-url: ${AGENT_BASE_URL:http://localhost:8001}
+  internal-token: ${INTERNAL_TOKEN:change-me}
+  aes-key: ${AES_KEY:0123456789abcdef}   # 16字节AES密钥，生产必改
+  workspace-root: ${WORKSPACE_ROOT:../agent/workspace}
+
+sa-token:
+  token-name: satoken
+  timeout: 86400
+  is-log: false
