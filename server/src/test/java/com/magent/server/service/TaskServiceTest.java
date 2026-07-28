@@ -80,7 +80,9 @@ class TaskServiceTest {
         doThrow(new BizException(502, "agent down")).when(agentClient)
                 .startTask(anyString(), anyString(), anyBoolean(), anyMap(), anyMap());
         assertThatThrownBy(this::createOk).isInstanceOf(BizException.class);
-        Task saved = taskMapper.selectList(null).get(0);
+        // 取最新一条（其他非事务测试可能残留旧任务）
+        Task saved = taskMapper.selectList(
+                new QueryWrapper<Task>().orderByDesc("id").last("limit 1")).get(0);
         assertThat(saved.getStatus()).isEqualTo("failed");
     }
 

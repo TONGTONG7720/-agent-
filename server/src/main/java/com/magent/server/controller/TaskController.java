@@ -5,8 +5,13 @@ import java.util.List;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.magent.server.common.Result;
+import com.magent.server.config.AppProps;
 import com.magent.server.entity.Task;
+import com.magent.server.entity.TaskEvent;
 import com.magent.server.mapper.TaskMapper;
+import com.magent.server.service.AgentStreamRelay;
+import com.magent.server.service.SseRegistry;
+import com.magent.server.service.TaskEventService;
 import com.magent.server.service.TaskService;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,24 +24,37 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/tasks")
 @RequiredArgsConstructor
 public class TaskController {
 
+    private static final long SSE_TIMEOUT_MS = 30 * 60 * 1000L;
+
     private final TaskService taskService;
     private final TaskMapper taskMapper;
+    private final TaskEventService eventService;
+    private final SseRegistry sseRegistry;
+    private final AgentStreamRelay relay;
+    private final AppProps props;
 
     public record CreateTaskRequest(@NotNull Long projectId,
                                     @NotBlank String requirement,
                                     boolean autoMode) {
     }
 
+    public record ApproveRequest(@NotBlank String decision, String comment) {
+    }
+
     @PostMapping
     public Result<Task> create(@Validated @RequestBody CreateTaskRequest req) {
         Task task = taskService.create(req.projectId(), req.requirement(),
                 req.autoMode(), StpUtil.getLoginIdAsLong());
+        if (props.isRelayEnabled()) {
+            relay.startRelay(task.getId());
+        }
         return Result.ok(task);
     }
 
@@ -52,5 +70,33 @@ public class TaskController {
     @GetMapping("/{id}")
     public Result<Task> get(@PathVariable Long id) {
         return Result.ok(taskService.getOrThrow(id));
+    }
+
+    @GetMapping("/{id}/events")
+    public Result<List<TaskEvent>> events(@PathVariable Long id,
+                                          @RequestParam(defaultValue = "0") int afterSeq) {
+        taskService.getOrThrow(id);
+        return Result.ok(eventService.listAfter(id, afterSeq));
+    }
+
+    @GetMapping("/{id}/stream")
+    public SseEmitter stream(@PathVariable Long id) {
+        taskService.getOrThrow(id);
+        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
+        sseRegistry.add(id, emitter);
+        return emitter;
+    }
+
+    @PostMapping("/{id}/approve")
+    public Result<Void> approve(@PathVariable Long id,
+                                @Validated @RequestBody ApproveRequest req) {
+        taskService.approve(id, req.decision(), req.comment());
+        return Result.ok();
+    }
+
+    @PostMapping("/{id}/cancel")
+    public Result<Void> cancel(@PathVariable Long id) {
+        taskService.cancel(id);
+        return Result.ok();
     }
 }

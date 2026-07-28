@@ -13,3 +13,4 @@ app:
   internal-token: change-me
   aes-key: 0123456789abcdef
   workspace-root: ${java.io.tmpdir}/magent-test-workspace
+  relay-enabled: false

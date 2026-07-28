@@ -13,4 +13,6 @@ public class AppProps {
     private String internalToken;
     private String aesKey;
     private String workspaceRoot;
+    /** 是否启动 Agent SSE 中继线程（测试环境关闭，避免连不上Agent服务误标failed）。 */
+    private boolean relayEnabled = true;
 }
