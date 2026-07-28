@@ -26,6 +26,12 @@ model_list:
 
   # -- Third-party relay (OpenAI-compatible); gpt-5.x verified available on this relay --
   # Register the same model_name multiple times to enable load-balance / failover.
+  - model_name: gpt-5.6-terra         # default: strongest, max reasoning effort
+    litellm_params:
+      model: openai/gpt-5.6-terra
+      api_base: os.environ/RELAY_BASE_URL
+      api_key: os.environ/RELAY_API_KEY
+      reasoning_effort: max           # max thinking budget (verified accepted by relay)
   - model_name: gpt-5.4-mini          # fast/cheap: good for PM / Tester / Reviewer
     litellm_params:
       model: openai/gpt-5.4-mini
