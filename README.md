@@ -54,8 +54,34 @@ cd ..; powershell -ExecutionPolicy Bypass -File scripts\start-all.ps1
 3. 全链路：前端建项目 → 发起任务"写一个Python计算器函数" → 观察五角色事件流 → PRD 审批 →
    设计审批 → 最终验收 → 下载产物
 
+## 安全 · 部署前必改清单 ⚠️
+
+仓库内的默认值仅供**本机单人试用**。一旦部署到公网或与他人共享网络，务必先改下列各项，否则同网段的人可能盗用你的模型额度、登录后台。
+
+| 项 | 位置 | 仓库默认值 | 改法 |
+|---|---|---|---|
+| 内网令牌 | `server/.env` 与 `agent/.env` | `change-me` | 生成随机值，两处保持一致（见下） |
+| AES 密钥 | `server/.env` | `0123456789abcdef` | 16 字节随机串 |
+| 管理员密码 | 首次启动种子 | `admin/admin123` | 登录后立即改；或改 `DataInitializer` |
+| 网关密钥 | `llm-gateway/.env` | `sk-magent-local` | 随机串；`agent/.env` 的 `AGENT_LLM_API_KEY` 同步 |
+| MySQL 密码 | `server/.env` | `root` | 你的真实库口令 |
+
+生成随机值并写入本地 `.env`（不入库）：
+
+```powershell
+# 复制模板
+cd server; Copy-Item .env.example .env
+# 生成令牌 / AES 密钥
+python -c "import secrets;print('magent_'+secrets.token_urlsafe(32))"   # 填 INTERNAL_TOKEN（server 与 agent 一致）
+python -c "import secrets,string;print(''.join(secrets.choice(string.ascii_letters+string.digits) for _ in range(16)))"  # 填 AES_KEY
+```
+
+**网络暴露面**：网关(4000) 与 Agent(8001) 已配置为**仅监听 `127.0.0.1`**（`start-gateway.ps1` / `start-all.ps1`），不对局域网开放。若确需跨机访问，请自行加鉴权/防火墙，勿直接改回 `0.0.0.0`。
+
+所有 `.env` 与 `*.pem/*.key` 等密钥文件均已被 `.gitignore` 排除，不会入库。
+
 ## 生产部署注意
 
-- 必改：`INTERNAL_TOKEN`（server 与 agent 一致）、`AES_KEY`、`LITELLM_MASTER_KEY`、admin 密码
 - Agent 服务设置 `AGENT_MYSQL_DSN` 启用 checkpoint 持久化（断点续跑）
-- 所有 `.env` 与密钥文件不入 git（已在 .gitignore）
+- 反向代理（Nginx）统一入口，仅暴露前端与 server；网关/Agent 留在内网
+- 上游中转站 Key 若曾在聊天/截图中出现过，建议到中转站后台重置

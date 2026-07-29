@@ -34,7 +34,7 @@ docker build -t magent-sandbox:latest -f sandbox.Dockerfile .
 ```powershell
 python -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
-.venv\Scripts\uvicorn app.main:app_factory --factory --host 0.0.0.0 --port 8001
+.venv\Scripts\uvicorn app.main:app_factory --factory --host 127.0.0.1 --port 8001
 ```
 
 ## API（Header 需带 `X-Internal-Token`）

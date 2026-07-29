@@ -1,6 +1,7 @@
 # 一键启动全部服务（每个服务独立窗口）
 # 用法: 在仓库根目录执行  powershell -ExecutionPolicy Bypass -File scripts\start-all.ps1
-# 前置: llm-gateway\.env 已配置; 本地 MySQL 已启动; agent\.venv 已装依赖; web 已 npm install
+# 前置: llm-gateway\.env 与 server\.env 已配置; 本地 MySQL 已启动; agent\.venv 已装依赖; web 已 npm install
+# 安全: 网关/Agent 仅监听 127.0.0.1（不对局域网暴露）
 
 $root = Split-Path $PSScriptRoot -Parent
 
@@ -10,11 +11,11 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command",
 
 Write-Host "[2/4] 启动 Agent 服务 (:8001) ..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command",
-  "cd '$root\agent'; .venv\Scripts\uvicorn app.main:app_factory --factory --host 0.0.0.0 --port 8001"
+  "cd '$root\agent'; .venv\Scripts\uvicorn app.main:app_factory --factory --host 127.0.0.1 --port 8001"
 
 Write-Host "[3/4] 启动 SpringBoot 业务后端 (:8080) ..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command",
-  "cd '$root\server'; mvn spring-boot:run"
+  "cd '$root\server'; .\start-server.ps1"
 
 Write-Host "[4/4] 启动前端 (:5173) ..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command",

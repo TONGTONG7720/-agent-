@@ -16,5 +16,6 @@ Get-Content $envFile | ForEach-Object {
   }
 }
 
-Write-Host "已加载 .env，启动 LiteLLM 网关 (:$Port) ..." -ForegroundColor Cyan
-litellm --config (Join-Path $PSScriptRoot "litellm-config.yaml") --port $Port
+Write-Host "已加载 .env，启动 LiteLLM 网关 (127.0.0.1:$Port) ..." -ForegroundColor Cyan
+# 只监听本机：网关持有真实上游 Key，不得对局域网暴露
+litellm --config (Join-Path $PSScriptRoot "litellm-config.yaml") --host 127.0.0.1 --port $Port
