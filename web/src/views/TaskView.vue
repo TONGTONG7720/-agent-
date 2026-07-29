@@ -273,7 +273,7 @@ onUnmounted(() => store.disconnect())
 
 /* 审批卡 */
 .gate-card :deep(.el-card__header) {
-  background: hsl(var(--c-yellow) / .3);
+  background: hsl(var(--c-yellow) / .16);
 }
 
 /* 产物 */

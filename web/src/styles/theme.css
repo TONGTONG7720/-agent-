@@ -1,19 +1,19 @@
 /* ============================================================
    卡通动漫风设计系统 —— 全站唯一样式来源
-   糖果色 + 贴纸卡片(粗描边/硬投影) + 圆滚按钮 + 弹跳动效
+   清爽蓝白 + 贴纸卡片(粗描边/硬投影) + 圆滚按钮 + 弹跳动效
    ============================================================ */
 
 :root {
-  /* -- 色板（HSL）：紫罗兰主色 + 糖果点缀 + 奶油底 -- */
-  --c-primary: 258 85% 66%;        /* 紫罗兰 */
-  --c-primary-deep: 258 60% 52%;
-  --c-pink: 335 90% 72%;           /* 糖果粉 */
-  --c-yellow: 42 100% 65%;         /* 奶黄 */
-  --c-mint: 160 65% 55%;           /* 薄荷绿(成功) */
-  --c-coral: 8 90% 66%;            /* 珊瑚红(危险) */
-  --c-sky: 205 90% 62%;            /* 天空蓝(信息) */
-  --c-ink: 250 25% 22%;            /* 墨色描边/正文 */
-  --c-cream: 46 100% 97%;          /* 奶油底 */
+  /* -- 色板（HSL）：蓝主色 + 橙色点缀 + 白/淡蓝灰底 -- */
+  --c-primary: 215 88% 56%;        /* 亮蓝 */
+  --c-primary-deep: 218 75% 44%;
+  --c-pink: 22 92% 58%;            /* 暖橙点缀（沿用旧token名，避免全量改引用） */
+  --c-yellow: 38 95% 56%;          /* 琥珀(警示/待审) */
+  --c-mint: 158 58% 42%;           /* 绿(成功) */
+  --c-coral: 5 80% 58%;            /* 红(危险) */
+  --c-sky: 192 85% 45%;            /* 青(信息) */
+  --c-ink: 220 35% 20%;            /* 深蓝灰描边/正文 */
+  --c-cream: 214 45% 97%;          /* 淡蓝灰底（沿用旧token名） */
   --c-paper: 0 0% 100%;
 
   /* -- 贴纸卡片三件套 -- */
@@ -23,17 +23,17 @@
   --radius-blob: 20px;
   --radius-pill: 999px;
 
-  --gradient-candy: linear-gradient(135deg, hsl(var(--c-primary)) 0%, hsl(var(--c-pink)) 100%);
-  --gradient-cream: linear-gradient(180deg, hsl(var(--c-cream)) 0%, hsl(320 60% 96%) 100%);
+  --gradient-candy: linear-gradient(135deg, hsl(var(--c-primary)) 0%, hsl(var(--c-sky)) 100%);
+  --gradient-cream: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(var(--c-cream)) 100%);
   --transition-bounce: all .25s cubic-bezier(.34, 1.56, .64, 1);
 
   /* -- Element Plus 主题接管 -- */
   --el-color-primary: hsl(var(--c-primary));
-  --el-color-primary-light-3: hsl(258 85% 74%);
-  --el-color-primary-light-5: hsl(258 85% 82%);
-  --el-color-primary-light-7: hsl(258 85% 89%);
-  --el-color-primary-light-8: hsl(258 85% 93%);
-  --el-color-primary-light-9: hsl(258 85% 96%);
+  --el-color-primary-light-3: hsl(215 88% 66%);
+  --el-color-primary-light-5: hsl(215 88% 76%);
+  --el-color-primary-light-7: hsl(215 88% 86%);
+  --el-color-primary-light-8: hsl(215 88% 91%);
+  --el-color-primary-light-9: hsl(215 88% 95%);
   --el-color-primary-dark-2: hsl(var(--c-primary-deep));
   --el-color-success: hsl(var(--c-mint));
   --el-color-warning: hsl(var(--c-yellow));
@@ -41,7 +41,7 @@
   --el-color-error: hsl(var(--c-coral));
   --el-color-info: hsl(var(--c-sky));
   --el-text-color-primary: hsl(var(--c-ink));
-  --el-text-color-regular: hsl(250 15% 35%);
+  --el-text-color-regular: hsl(220 20% 35%);
   --el-border-radius-base: 12px;
   --el-border-radius-small: 10px;
   --el-border-radius-round: var(--radius-pill);
@@ -66,10 +66,9 @@ h1, h2, h3, .font-display, .el-card__header, .el-dialog__title {
   letter-spacing: .5px;
 }
 
-/* 糖果波点背景 */
+/* 背景装饰：清爽风不要波点，留空 class 兼容各页引用 */
 .dotted-bg {
-  background-image: radial-gradient(hsl(var(--c-primary) / .10) 2.5px, transparent 2.5px);
-  background-size: 26px 26px;
+  background-image: none;
 }
 
 /* ============ 贴纸卡片 ============ */
@@ -200,12 +199,12 @@ h1, h2, h3, .font-display, .el-card__header, .el-dialog__title {
   border-radius: 50%;
   background: currentColor;
 }
-.chip.pending        { color: hsl(250 10% 50%); background: hsl(250 10% 96%); }
-.chip.running        { color: hsl(var(--c-primary-deep)); background: hsl(var(--c-primary) / .1); }
-.chip.waiting_review { color: hsl(35 90% 38%); background: hsl(var(--c-yellow) / .18); }
-.chip.done           { color: hsl(160 70% 30%); background: hsl(var(--c-mint) / .14); }
-.chip.failed         { color: hsl(8 75% 45%); background: hsl(var(--c-coral) / .12); }
-.chip.canceled       { color: hsl(250 10% 50%); background: hsl(250 10% 96%); }
+.chip.pending        { color: hsl(220 12% 48%); background: hsl(220 15% 96%); }
+.chip.running        { color: hsl(var(--c-primary-deep)); background: hsl(var(--c-primary) / .09); }
+.chip.waiting_review { color: hsl(32 90% 36%); background: hsl(var(--c-yellow) / .15); }
+.chip.done           { color: hsl(158 70% 27%); background: hsl(var(--c-mint) / .12); }
+.chip.failed         { color: hsl(5 70% 44%); background: hsl(var(--c-coral) / .1); }
+.chip.canceled       { color: hsl(220 12% 48%); background: hsl(220 15% 96%); }
 
 /* ============ 自绘任务行卡（替代项目页 el-table） ============ */
 .task-row {
@@ -394,7 +393,7 @@ h1, h2, h3, .font-display, .el-card__header, .el-dialog__title {
   flex-wrap: wrap;
   gap: 10px;
   padding: 12px 16px;
-  background: hsl(var(--c-yellow) / .2);
+  background: hsl(var(--c-yellow) / .14);
   border: 2px solid hsl(var(--c-ink));
   border-radius: 16px;
   box-shadow: var(--shadow-sticker);
@@ -439,8 +438,8 @@ h1, h2, h3, .font-display, .el-card__header, .el-dialog__title {
   font-size: 12.5px;
 }
 .md-body pre {
-  background: hsl(250 25% 16%);
-  color: hsl(46 100% 96%);
+  background: hsl(220 35% 15%);
+  color: hsl(210 40% 96%);
   padding: 14px 16px;
   border-radius: 12px;
   overflow: auto;
