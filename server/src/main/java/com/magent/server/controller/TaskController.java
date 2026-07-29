@@ -140,7 +140,12 @@ public class TaskController {
 
     @PostMapping("/compare")
     public Result<java.util.Map<String, Long>> compare(@Validated @RequestBody CompareRequest req) {
-        return Result.ok(taskService.createComparison(req.projectId(), req.requirement(),
-                StpUtil.getLoginIdAsLong(), req.modelAId(), req.modelBId()));
+        java.util.Map<String, Long> ids = taskService.createComparison(req.projectId(),
+                req.requirement(), StpUtil.getLoginIdAsLong(), req.modelAId(), req.modelBId());
+        if (props.isRelayEnabled()) {
+            relay.startRelay(ids.get("taskAId"));   // 两个对比任务各自订阅事件流落库
+            relay.startRelay(ids.get("taskBId"));
+        }
+        return Result.ok(ids);
     }
 }
