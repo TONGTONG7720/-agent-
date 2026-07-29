@@ -69,6 +69,27 @@
       </div>
     </el-card>
 
+    <el-card style="margin-top:20px">
+      <template #header>
+        <div class="card-head">
+          <span>知识库 <span class="hint">（上传团队规范/已有代码，发任务时自动检索相关片段供 AI 参考）</span></span>
+          <el-button size="small" type="primary" @click="kbDlg = true">上传文档</el-button>
+        </div>
+      </template>
+      <el-table :data="knowledge" size="small">
+        <el-table-column prop="name" label="文档名" />
+        <el-table-column label="字数" width="120">
+          <template #default="{ row }">{{ row.size }} 字</template>
+        </el-table-column>
+        <el-table-column label="操作" width="90">
+          <template #default="{ row }">
+            <el-button size="small" text type="danger" @click="onDeleteKb(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div v-if="knowledge.length === 0" class="kb-empty">还没有知识文档，上传后 AI 写代码时会参考</div>
+    </el-card>
+
     <el-dialog v-model="modelDlg" title="新增模型" width="480px">
       <el-form label-width="110px">
         <el-form-item label="显示名称">
@@ -126,6 +147,22 @@
         <el-button type="primary" @click="onSaveRole">保存</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="kbDlg" title="上传知识文档" width="600px">
+      <el-form label-width="80px">
+        <el-form-item label="文档名">
+          <el-input v-model="kbForm.name" placeholder="如：前端编码规范 / 订单模块代码" />
+        </el-form-item>
+        <el-form-item label="内容">
+          <el-input v-model="kbForm.content" type="textarea" :rows="12"
+                    placeholder="粘贴团队规范、接口文档、已有代码等，AI 写代码时会检索参考" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="kbDlg = false">取消</el-button>
+        <el-button type="primary" :loading="kbSaving" @click="onUploadKb">上传</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -137,8 +174,12 @@ import { AGENT_META } from '../utils/status'
 
 const models = ref<LlmModelView[]>([])
 const pipeline = ref<RoleConfig[]>([])
+const knowledge = ref<{ id: number; name: string; size: number }[]>([])
 const modelDlg = ref(false)
 const newModel = reactive({ name: '', litellmModelName: '', apiKey: '' })
+const kbDlg = ref(false)
+const kbSaving = ref(false)
+const kbForm = reactive({ name: '', content: '' })
 
 const roleDlg = ref(false)
 const editing = ref(false)
@@ -159,6 +200,33 @@ function kindText(k: string | null): string {
 async function load() {
   models.value = await api.listModels()
   pipeline.value = await api.listPipeline()
+  knowledge.value = await api.listKnowledge()
+}
+
+async function onUploadKb() {
+  if (!kbForm.name.trim() || !kbForm.content.trim()) {
+    ElMessage.warning('请填写文档名与内容')
+    return
+  }
+  kbSaving.value = true
+  try {
+    await api.uploadKnowledge(kbForm.name.trim(), kbForm.content)
+    kbDlg.value = false
+    Object.assign(kbForm, { name: '', content: '' })
+    await load()
+    ElMessage.success('已上传')
+  } catch (e) {
+    ElMessage.error((e as Error).message)
+  } finally {
+    kbSaving.value = false
+  }
+}
+
+async function onDeleteKb(row: { id: number; name: string }) {
+  await ElMessageBox.confirm(`确定删除知识文档「${row.name}」？`, '删除', { type: 'warning' })
+  await api.deleteKnowledge(row.id)
+  await load()
+  ElMessage.success('已删除')
 }
 
 async function onCreateModel() {
@@ -277,4 +345,5 @@ onMounted(load)
 
 .agent-avatar.mini { width: 24px; height: 24px; }
 .agent-avatar.mini img { width: 100%; height: 100%; border-radius: 50%; }
+.kb-empty { text-align: center; color: hsl(250 12% 55%); font-size: 13px; padding: 12px 0; }
 </style>

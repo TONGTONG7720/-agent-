@@ -59,6 +59,12 @@ export interface RoleConfig {
   defaultModelId: number | null
 }
 
+export interface KnowledgeMeta {
+  id: number
+  name: string
+  size: number
+}
+
 export const api = {
   login: (username: string, password: string) =>
     http.post<{ token: string; username: string; role: string }>('/api/auth/login', { username, password }),
@@ -98,5 +104,11 @@ export const api = {
     enabled: boolean; reworkTarget: string | null; systemPrompt: string | null;
     defaultModelId: number | null }>) => http.put<RoleConfig>(`/api/pipeline/roles/${id}`, body),
   deleteRole: (id: number) => http.post<void>(`/api/pipeline/roles/${id}/delete`),
-  reorderPipeline: (orderedIds: number[]) => http.post<void>('/api/pipeline/reorder', { orderedIds })
+  reorderPipeline: (orderedIds: number[]) => http.post<void>('/api/pipeline/reorder', { orderedIds }),
+
+  // 知识库
+  listKnowledge: () => http.get<KnowledgeMeta[]>('/api/knowledge'),
+  uploadKnowledge: (name: string, content: string) =>
+    http.post<KnowledgeMeta>('/api/knowledge', { name, content }),
+  deleteKnowledge: (id: number) => http.post<void>(`/api/knowledge/${id}/delete`)
 }
