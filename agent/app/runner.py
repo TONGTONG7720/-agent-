@@ -113,7 +113,11 @@ class TaskManager:
         if content:
             self._emit(task_id, "agent_message", agent=node,
                        data={"delta": content, "content": content})
-        self._emit(task_id, "node_end", agent=node, data={"node": node})
+        end_data = {"node": node}
+        if "input_tokens" in out:
+            end_data["input_tokens"] = out["input_tokens"]
+            end_data["output_tokens"] = out.get("output_tokens", 0)
+        self._emit(task_id, "node_end", agent=node, data=end_data)
 
     async def _run(self, task_id: str, payload):
         config = {"configurable": {"thread_id": task_id}}
@@ -130,7 +134,9 @@ class TaskManager:
                 state = self.graph.get_state(config).values
                 self._emit(task_id, "task_done",
                            data={"review_passed": state.get("review_passed", False),
-                                 "iteration_count": state.get("iteration_count", 0)})
+                                 "iteration_count": state.get("iteration_count", 0),
+                                 "input_tokens": state.get("input_tokens", 0),
+                                 "output_tokens": state.get("output_tokens", 0)})
         except asyncio.CancelledError:
             raise
         except Exception as e:  # noqa: BLE001 —— 设计文档第5节：兜底转 task_failed

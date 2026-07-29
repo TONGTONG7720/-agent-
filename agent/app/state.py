@@ -21,6 +21,8 @@ class GraphState(TypedDict, total=False):
     review_passed: bool
     iteration_count: int          # Reviewer→Coder 返工轮数
     human_feedback: str           # 人审驳回意见，回传给上游节点
+    input_tokens: int             # 全图累计 token 用量（读 usage_metadata）
+    output_tokens: int
 
 
 _BLOCK_RE = re.compile(r"===FILE: (.+?)===\n(.*?)\n===END===", re.DOTALL)
