@@ -24,6 +24,7 @@ class StartTaskRequest(BaseModel):
     role_models: dict[str, str] = Field(default_factory=dict)
     role_prompts: dict[str, str] = Field(default_factory=dict)  # 覆盖默认 prompt，可空
     pipeline: dict | None = None                                # 自定义流水线 spec（缺省用默认五角色）
+    knowledge: str | None = None                                # RAG 检索到的知识库参考片段
 
 
 class ResumeRequest(BaseModel):

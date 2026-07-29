@@ -24,6 +24,7 @@ class GraphState(TypedDict, total=False):
     reject_target: str            # 定向回退目标角色（pm/architect/coder）
     iterate_feedback: str         # 完成后的多轮迭代修改意见（直接进 coder）
     documents: list               # 通用产出累加器 [{key,name,content}]（自定义流水线用）
+    knowledge: str                # RAG 检索到的知识库参考片段（注入 SystemMessage）
     input_tokens: int             # 全图累计 token 用量（读 usage_metadata）
     output_tokens: int
 

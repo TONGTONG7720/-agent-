@@ -18,6 +18,7 @@ from ..config import settings
 from ..state import GraphState, parse_code_blocks
 from ..workspace import task_dir, write_files
 from .prompts import DEFAULT_PROMPTS
+from .nodes import with_knowledge
 
 DEFAULT_PIPELINE = {
     "steps": [
@@ -40,7 +41,7 @@ def _prompt(step: dict, state: GraphState) -> str:
 
 def _call(step: dict, llm_factory, state: GraphState, user_content: str) -> tuple[str, dict]:
     llm = llm_factory(step["key"], state)
-    resp = llm.invoke([SystemMessage(content=_prompt(step, state)),
+    resp = llm.invoke([SystemMessage(content=with_knowledge(_prompt(step, state), state)),
                        HumanMessage(content=user_content)])
     usage = getattr(resp, "usage_metadata", None) or {}
     tokens = {

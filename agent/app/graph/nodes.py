@@ -10,10 +10,20 @@ def _prompt(state: GraphState, role: str) -> str:
     return (state.get("role_prompts") or {}).get(role, DEFAULT_PROMPTS[role])
 
 
+def with_knowledge(system_prompt: str, state: GraphState) -> str:
+    """若 state 带 RAG 知识库片段，追加到系统提示末尾作参考。"""
+    kb = (state.get("knowledge") or "").strip()
+    if not kb:
+        return system_prompt
+    return (system_prompt
+            + "\n\n【参考知识库】以下是团队规范/已有资料的相关片段，请在产出时遵循并参考：\n"
+            + kb)
+
+
 def _call(llm_factory, role: str, state: GraphState, user_content: str) -> tuple[str, dict]:
     """调用模型，返回 (内容, 全图累计token字段)。无 usage 元数据时累计值不变。"""
     llm = llm_factory(role, state)
-    resp = llm.invoke([SystemMessage(content=_prompt(state, role)),
+    resp = llm.invoke([SystemMessage(content=with_knowledge(_prompt(state, role), state)),
                        HumanMessage(content=user_content)])
     usage = getattr(resp, "usage_metadata", None) or {}
     tokens = {

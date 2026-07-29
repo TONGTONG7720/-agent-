@@ -64,7 +64,8 @@ class TaskManager:
             self.graphs[req.task_id] = self.pipeline_builder(req.pipeline)
         payload = {"task_id": req.task_id, "requirement": req.requirement,
                    "auto_mode": req.auto_mode, "iteration_count": 0,
-                   "role_models": req.role_models, "role_prompts": req.role_prompts}
+                   "role_models": req.role_models, "role_prompts": req.role_prompts,
+                   "knowledge": req.knowledge or ""}
         self._submit(req.task_id, payload)
 
     def resume(self, task_id: str, decision: str, comment: str, target: str | None = None):
