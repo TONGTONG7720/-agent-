@@ -1,8 +1,8 @@
 <template>
   <div>
     <div class="head">
-      <h2 class="page-title">📁 我的项目</h2>
-      <el-button type="primary" size="large" @click="createDlg = true">＋ 新建项目</el-button>
+      <h2 class="page-title">我的项目</h2>
+      <el-button type="primary" size="large" @click="createDlg = true">新建项目</el-button>
     </div>
 
     <el-row :gutter="20">
@@ -10,31 +10,27 @@
         <el-card shadow="never" class="hoverable sticker-card pop-in">
           <template #header>
             <div class="card-head">
-              <span class="proj-name">🚀 {{ p.name }}</span>
+              <span class="proj-name">{{ p.name }}</span>
               <el-button size="small" type="primary" @click="openTaskDlg(p)">发起任务</el-button>
             </div>
           </template>
-          <el-table :data="tasksOf(p.id)" size="small" @row-click="(row: Task) => router.push(`/tasks/${row.id}`)"
-                    style="cursor:pointer">
-            <el-table-column prop="id" label="ID" width="60" />
-            <el-table-column prop="requirement" label="需求" show-overflow-tooltip />
-            <el-table-column label="状态" width="100">
-              <template #default="{ row }">
-                <el-tag :type="statusType(row.status)" size="small">{{ statusText(row.status) }}</el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-          <div v-if="tasksOf(p.id).length === 0" class="no-task">还没有任务，点右上角发起一个吧～</div>
+          <div v-for="t in tasksOf(p.id)" :key="t.id" class="task-row"
+               @click="router.push(`/tasks/${t.id}`)">
+            <span class="no">#{{ t.id }}</span>
+            <span class="req">{{ t.requirement }}</span>
+            <span :class="statusClass(t.status)">{{ statusText(t.status) }}</span>
+          </div>
+          <div v-if="tasksOf(p.id).length === 0" class="no-task">还没有任务，点右上角发起一个</div>
         </el-card>
       </el-col>
     </el-row>
 
     <div v-if="projects.length === 0" class="empty-wrap pop-in">
-      <img src="../assets/empty-state.png" alt="空空如也" class="empty-img float-soft" />
-      <div class="empty-text">还没有项目哦，点右上角创建第一个吧！</div>
+      <img src="../assets/empty-state.png" alt="空状态" class="empty-img float-soft" />
+      <div class="empty-text">还没有项目，点右上角创建第一个</div>
     </div>
 
-    <el-dialog v-model="createDlg" title="🎉 新建项目" width="420px">
+    <el-dialog v-model="createDlg" title="新建项目" width="420px">
       <el-input v-model="newProjectName" placeholder="项目名称" />
       <template #footer>
         <el-button @click="createDlg = false">取消</el-button>
@@ -42,15 +38,15 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="taskDlg" :title="`✨ 发起任务 · ${currentProject?.name ?? ''}`" width="560px">
+    <el-dialog v-model="taskDlg" :title="`发起任务 · ${currentProject?.name ?? ''}`" width="560px">
       <el-input v-model="requirement" type="textarea" :rows="5"
-                placeholder="告诉小机器人们你想做什么，例如：写一个Python计算器，支持加减乘除和括号" />
+                placeholder="描述你想做什么，例如：写一个Python计算器，支持加减乘除和括号" />
       <div style="margin-top:12px">
         <el-switch v-model="autoMode" active-text="全自动模式（跳过人工审批）" />
       </div>
       <template #footer>
         <el-button @click="taskDlg = false">取消</el-button>
-        <el-button type="primary" :loading="creating" @click="onCreateTask">🚀 启动多Agent协作</el-button>
+        <el-button type="primary" :loading="creating" @click="onCreateTask">启动协作</el-button>
       </template>
     </el-dialog>
   </div>
@@ -61,7 +57,7 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { api, type Project, type Task } from '../api'
-import { statusText, statusType } from '../utils/status'
+import { statusClass, statusText } from '../utils/status'
 
 const router = useRouter()
 const projects = ref<Project[]>([])

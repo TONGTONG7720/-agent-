@@ -4,25 +4,21 @@
       <!-- 左侧插画 -->
       <div class="hero-side">
         <img src="../assets/login-hero.png" alt="多Agent团队" class="hero-img float-soft" />
-        <div class="hero-caption">五只小机器人，组队帮你写代码 🚀</div>
+        <div class="hero-caption">五人小队，分工帮你把需求变成代码</div>
       </div>
 
       <!-- 右侧登录卡 -->
       <div class="form-side">
-        <div class="brand-badge wiggle">🤖</div>
+        <img src="../assets/logo.png" alt="logo" class="brand-logo" />
         <h1 class="title">多Agent协同开发平台</h1>
-        <p class="subtitle">提个需求，让 AI 小队分工搞定它～</p>
+        <p class="subtitle">提个需求，交给 AI 小队分工搞定</p>
 
-        <el-input v-model="username" placeholder="用户名" size="large" class="fld">
-          <template #prefix><span>👤</span></template>
-        </el-input>
+        <el-input v-model="username" placeholder="用户名" size="large" class="fld" />
         <el-input v-model="password" type="password" placeholder="密码" size="large"
-                  show-password class="fld" @keyup.enter="onLogin">
-          <template #prefix><span>🔑</span></template>
-        </el-input>
+                  show-password class="fld" @keyup.enter="onLogin" />
 
         <el-button type="primary" size="large" class="login-btn" :loading="loading" @click="onLogin">
-          开始协作 ✨
+          开始协作
         </el-button>
         <div class="tip">默认账号：admin / admin123</div>
       </div>
@@ -109,18 +105,15 @@ async function onLogin() {
   flex-direction: column;
   align-items: center;
 }
-.brand-badge {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: hsl(var(--c-yellow) / .5);
+.brand-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
   border: var(--border-cartoon);
   box-shadow: 3px 3px 0 hsl(var(--c-ink) / .9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 34px;
+  object-fit: cover;
   margin-bottom: 14px;
+  background: hsl(var(--c-paper));
 }
 .title { font-size: 24px; margin: 0 0 6px; color: hsl(var(--c-ink)); }
 .subtitle { color: hsl(250 12% 48%); margin: 0 0 26px; font-size: 14px; }

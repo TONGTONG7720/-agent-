@@ -1,12 +1,12 @@
 <template>
   <div>
-    <h2 class="page-title">⚙️ 系统管理</h2>
+    <h2 class="page-title">系统管理</h2>
     <el-row :gutter="20">
       <el-col :span="12">
         <el-card>
           <template #header>
             <div class="card-head">
-              <span>🧩 模型管理</span>
+              <span>模型管理</span>
               <el-button size="small" type="primary" @click="modelDlg = true">新增模型</el-button>
             </div>
           </template>
@@ -27,12 +27,12 @@
 
       <el-col :span="12">
         <el-card>
-          <template #header>🎭 Agent 角色配置</template>
+          <template #header>角色配置</template>
           <el-table :data="roleConfigs" size="small">
             <el-table-column label="角色" width="150">
               <template #default="{ row }">
                 <span class="role-cell">
-                  <span class="agent-avatar mini" :class="row.role">{{ AGENT_META[row.role]?.icon }}</span>
+                  <span class="agent-avatar mini"><img :src="AGENT_META[row.role]?.avatar" :alt="row.role" /></span>
                   {{ AGENT_META[row.role]?.name ?? row.role }}
                 </span>
               </template>
@@ -146,10 +146,4 @@ onMounted(load)
   align-items: center;
 }
 .role-cell { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
-.agent-avatar.mini {
-  width: 30px;
-  height: 30px;
-  font-size: 15px;
-  box-shadow: 1.5px 1.5px 0 hsl(var(--c-ink) / .85);
-}
 </style>

@@ -5,13 +5,13 @@
         <div class="task-badge">#{{ task.id }}</div>
         <div>
           <div class="task-title">{{ task.requirement }}</div>
-          <div class="task-sub">五只小机器人正在为这个需求努力工作中…</div>
+          <div class="task-sub">AI 小队正在为这个需求工作</div>
         </div>
       </div>
       <div class="head-right">
         <span v-if="task.status === 'running'" class="pulse-dot" />
-        <el-tag :type="statusType(task.status)" size="large">{{ statusText(task.status) }}</el-tag>
-        <el-button v-if="!isTerminal" type="danger" @click="onCancel">🛑 取消任务</el-button>
+        <span :class="statusClass(task.status)" style="font-size:14px">{{ statusText(task.status) }}</span>
+        <el-button v-if="!isTerminal" type="danger" @click="onCancel">取消任务</el-button>
       </div>
     </div>
 
@@ -19,16 +19,16 @@
       <!-- 左侧：角色流水线 -->
       <el-col :span="5">
         <el-card>
-          <template #header>👥 AI 小队</template>
+          <template #header>AI 小队</template>
           <div v-for="(r, i) in AGENT_ORDER" :key="r" class="crew-row"
                :class="{ active: r === store.currentAgent && !store.finished, done: i < activeStep }">
-            <div class="agent-avatar" :class="[r, { wiggle: r === store.currentAgent && !store.finished }]">
-              {{ AGENT_META[r].icon }}
+            <div class="agent-avatar" :class="{ wiggle: r === store.currentAgent && !store.finished }">
+              <img :src="AGENT_META[r].avatar" :alt="AGENT_META[r].name" />
             </div>
             <div class="crew-info">
               <div class="crew-name">{{ AGENT_META[r].name }}</div>
               <div class="crew-state">
-                {{ i < activeStep ? '✅ 完成' : (r === store.currentAgent && !store.finished ? '💪 工作中' : '💤 待命') }}
+                {{ i < activeStep ? '完成' : (r === store.currentAgent && !store.finished ? '工作中' : '待命') }}
               </div>
             </div>
           </div>
@@ -38,13 +38,15 @@
       <!-- 中间：事件流（聊天气泡） -->
       <el-col :span="12">
         <el-card v-loading="loading" body-style="max-height:66vh;overflow:auto">
-          <template #header>💬 协作直播间</template>
+          <template #header>协作实况</template>
           <div v-if="store.messages.length === 0" class="waiting">
-            <span class="wiggle" style="display:inline-block;font-size:34px">🤖</span>
-            <div>小机器人们正在思考，稍等一下下…</div>
+            <img src="../assets/logo.png" alt="思考中" class="waiting-logo float-soft" />
+            <div>小队正在思考，稍等片刻</div>
           </div>
           <div v-for="m in store.messages" :key="m.seq" class="msg pop-in">
-            <div class="agent-avatar" :class="m.agent">{{ AGENT_META[m.agent]?.icon ?? '🤖' }}</div>
+            <div class="agent-avatar">
+              <img :src="AGENT_META[m.agent]?.avatar" :alt="m.agent" />
+            </div>
             <div class="msg-main">
               <div class="msg-name">{{ AGENT_META[m.agent]?.name ?? m.agent }}</div>
               <pre class="chat-bubble msg-body">{{ m.content }}</pre>
@@ -56,22 +58,21 @@
       <!-- 右侧：审批 + 产物 -->
       <el-col :span="7">
         <el-card v-if="store.pendingGate" class="gate-card pop-in">
-          <template #header>
-            <span class="wiggle" style="display:inline-block">⏸️</span>
-            {{ GATE_TEXT[store.pendingGate.gate] ?? store.pendingGate.question }}
-          </template>
+          <template #header>{{ GATE_TEXT[store.pendingGate.gate] ?? store.pendingGate.question }}</template>
           <el-input v-model="comment" type="textarea" :rows="3" placeholder="审批意见（驳回时必填）" />
           <div style="margin-top:14px;display:flex;gap:10px">
-            <el-button type="success" style="flex:1" :loading="approving" @click="onApprove('pass')">👍 通过</el-button>
-            <el-button type="danger" style="flex:1" :loading="approving" @click="onApprove('reject')">👎 驳回</el-button>
+            <el-button type="success" style="flex:1" :loading="approving" @click="onApprove('pass')">通过</el-button>
+            <el-button type="danger" style="flex:1" :loading="approving" @click="onApprove('reject')">驳回</el-button>
           </div>
         </el-card>
 
         <el-card :style="store.pendingGate ? 'margin-top:20px' : ''">
-          <template #header>🎁 产物宝箱（{{ artifacts.length }}）</template>
-          <div v-if="artifacts.length === 0" class="no-artifact">还没有产出，敬请期待～</div>
+          <template #header>任务产物（{{ artifacts.length }}）</template>
+          <div v-if="artifacts.length === 0" class="no-artifact">还没有产出，敬请期待</div>
           <div v-for="a in artifacts" :key="a.id" class="artifact">
-            <span>{{ typeIcon(a.type) }} {{ a.name }}</span>
+            <span class="artifact-name">
+              <span class="type-chip">{{ ARTIFACT_TYPE_TEXT[a.type] ?? a.type }}</span>{{ a.name }}
+            </span>
             <el-link type="primary" :href="downloadUrl(a.id)" target="_blank">下载</el-link>
           </div>
         </el-card>
@@ -87,7 +88,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { api, type Artifact, type Task } from '../api'
 import { getToken } from '../api/http'
 import { useTaskEventsStore } from '../stores/taskEvents'
-import { AGENT_META, AGENT_ORDER, GATE_TEXT, statusText, statusType } from '../utils/status'
+import { AGENT_META, AGENT_ORDER, ARTIFACT_TYPE_TEXT, GATE_TEXT, statusClass, statusText } from '../utils/status'
 
 const route = useRoute()
 const store = useTaskEventsStore()
@@ -105,10 +106,6 @@ const activeStep = computed(() => {
   const idx = AGENT_ORDER.indexOf(store.currentAgent)
   return idx < 0 ? 0 : (store.finished ? AGENT_ORDER.length : idx)
 })
-
-function typeIcon(type: string): string {
-  return { prd: '📋', design: '📐', code: '📄', test_report: '🧪' }[type] ?? '📄'
-}
 
 function downloadUrl(id: number): string {
   return `/api/artifacts/${id}/download?satoken=${encodeURIComponent(getToken())}`
@@ -138,7 +135,7 @@ async function onApprove(decision: 'pass' | 'reject') {
 }
 
 async function onCancel() {
-  await ElMessageBox.confirm('确定取消该任务？小机器人们会停止工作。', '取消任务', { type: 'warning' })
+  await ElMessageBox.confirm('确定取消该任务？AI 小队会停止工作。', '取消任务', { type: 'warning' })
   await api.cancelTask(taskId)
   await refreshTask()
 }
@@ -207,6 +204,15 @@ onUnmounted(() => store.disconnect())
   color: hsl(250 12% 55%);
   padding: 40px 0;
 }
+.waiting-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  border: var(--border-cartoon);
+  box-shadow: 3px 3px 0 hsl(var(--c-ink) / .85);
+  object-fit: cover;
+  margin-bottom: 10px;
+}
 .msg { display: flex; gap: 12px; margin-bottom: 18px; }
 .msg-main { flex: 1; min-width: 0; }
 .msg-name { font-weight: 700; font-size: 13px; margin-bottom: 5px; }
@@ -235,5 +241,24 @@ onUnmounted(() => store.disconnect())
   background: hsl(var(--c-mint) / .1);
   border: 2px dashed hsl(var(--c-ink) / .25);
   border-radius: 12px;
+}
+.artifact-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+.type-chip {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid hsl(var(--c-ink) / .7);
+  background: hsl(var(--c-paper));
+  color: hsl(var(--c-primary-deep));
 }
 </style>
