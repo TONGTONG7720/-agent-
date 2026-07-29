@@ -103,7 +103,11 @@
           <template #header>
             <div class="artifact-head">
               <span>任务产物（{{ artifacts.length }}）</span>
-              <el-link v-if="artifacts.length" type="primary" :href="zipUrl" target="_blank">打包下载</el-link>
+              <span class="artifact-head-ops">
+                <el-link v-if="task.status === 'done' && artifacts.length" type="primary"
+                         @click="pushDlg = true">推送到Git</el-link>
+                <el-link v-if="artifacts.length" type="primary" :href="zipUrl" target="_blank">打包下载</el-link>
+              </span>
             </div>
           </template>
           <div v-if="artifacts.length === 0" class="no-artifact">还没有产出，敬请期待</div>
@@ -125,6 +129,24 @@
       <div v-if="previewIsMd" class="md-body" v-html="renderMd(previewContent)" />
       <pre v-else class="preview-code">{{ previewContent }}</pre>
     </el-drawer>
+
+    <!-- 推送到 Git 仓库 -->
+    <el-dialog v-model="pushDlg" title="推送产物到 Git 仓库" width="520px">
+      <el-form label-width="90px">
+        <el-form-item label="仓库地址">
+          <el-input v-model="pushRepoUrl" placeholder="https://github.com/你/仓库.git" />
+        </el-form-item>
+        <el-form-item label="访问令牌">
+          <el-input v-model="pushToken" type="password" show-password
+                    placeholder="可选；GitHub PAT，仅本次使用不保存" />
+        </el-form-item>
+      </el-form>
+      <div class="push-tip">将创建新分支 magent/T{{ taskId }}-时间戳，不影响仓库现有分支</div>
+      <template #footer>
+        <el-button @click="pushDlg = false">取消</el-button>
+        <el-button type="primary" :loading="pushing" @click="onPush">推 送</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -157,6 +179,10 @@ const previewOpen = ref(false)
 const previewName = ref('')
 const previewContent = ref('')
 const previewIsMd = ref(false)
+const pushDlg = ref(false)
+const pushRepoUrl = ref(localStorage.getItem('magent_repo_url') ?? '')
+const pushToken = ref('')
+const pushing = ref(false)
 
 const zipUrl = computed(() =>
   `/api/tasks/${taskId}/artifacts/zip?satoken=${encodeURIComponent(getToken())}`)
@@ -262,6 +288,25 @@ async function onIterate() {
     ElMessage.error((e as Error).message)
   } finally {
     iterating.value = false
+  }
+}
+
+async function onPush() {
+  if (!pushRepoUrl.value.trim()) {
+    ElMessage.warning('请填写仓库地址')
+    return
+  }
+  pushing.value = true
+  try {
+    const res = await api.pushTask(taskId, pushRepoUrl.value.trim(), pushToken.value.trim())
+    localStorage.setItem('magent_repo_url', pushRepoUrl.value.trim())   // 只记仓库地址，不存token
+    pushToken.value = ''
+    pushDlg.value = false
+    await ElMessageBox.alert(`已推送到分支：${res.branch}`, '推送成功', { type: 'success' })
+  } catch (e) {
+    ElMessage.error((e as Error).message)
+  } finally {
+    pushing.value = false
   }
 }
 
@@ -382,6 +427,8 @@ onUnmounted(() => store.disconnect())
 
 /* 产物 */
 .artifact-head { display: flex; justify-content: space-between; align-items: center; }
+.artifact-head-ops { display: inline-flex; gap: 12px; }
+.push-tip { font-size: 12px; color: hsl(250 12% 55%); }
 .artifact-ops { display: inline-flex; gap: 10px; flex: none; }
 .preview-code {
   background: hsl(220 35% 15%);

@@ -71,6 +71,8 @@ export const api = {
   retryTask: (taskId: number) => http.post<void>(`/api/tasks/${taskId}/retry`),
   iterateTask: (taskId: number, feedback: string) =>
     http.post<void>(`/api/tasks/${taskId}/iterate`, { feedback }),
+  pushTask: (taskId: number, repoUrl: string, token: string) =>
+    http.post<{ branch: string }>(`/api/tasks/${taskId}/push`, { repoUrl, token: token || null }),
   cancelTask: (taskId: number) => http.post<void>(`/api/tasks/${taskId}/cancel`),
   listArtifacts: (taskId: number) => http.get<Artifact[]>(`/api/tasks/${taskId}/artifacts`),
   artifactContent: (id: number) => http.get<string>(`/api/artifacts/${id}/content`),
