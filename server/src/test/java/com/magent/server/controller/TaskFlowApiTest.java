@@ -98,7 +98,7 @@ class TaskFlowApiTest {
         mvc.perform(post("/api/tasks/" + taskId + "/approve").header("satoken", token)
                         .contentType(APPLICATION_JSON).content("{\"decision\":\"pass\",\"comment\":\"ok\"}"))
                 .andExpect(status().isOk());
-        verify(agentClient).resume("T" + taskId, "pass", "ok");
+        verify(agentClient).resume("T" + taskId, "pass", "ok", null);
         mvc.perform(get("/api/tasks/" + taskId).header("satoken", token))
                 .andExpect(jsonPath("$.data.status").value("running"));
     }

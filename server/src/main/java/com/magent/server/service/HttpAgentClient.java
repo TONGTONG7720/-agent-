@@ -5,6 +5,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,14 +40,23 @@ public class HttpAgentClient implements AgentClient {
     }
 
     @Override
-    public void resume(String taskId, String decision, String comment) {
-        post("/agent/tasks/" + taskId + "/resume",
-                Map.of("decision", decision, "comment", comment == null ? "" : comment));
+    public void resume(String taskId, String decision, String comment, String target) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("decision", decision);
+        body.put("comment", comment == null ? "" : comment);
+        body.put("target", target);   // 可为 null，agent 侧按门默认
+        post("/agent/tasks/" + taskId + "/resume", body);
     }
 
     @Override
     public void retry(String taskId, int afterSeq) {
         post("/agent/tasks/" + taskId + "/retry", Map.of("after_seq", afterSeq));
+    }
+
+    @Override
+    public void iterate(String taskId, String feedback, int afterSeq) {
+        post("/agent/tasks/" + taskId + "/iterate",
+                Map.of("feedback", feedback, "after_seq", afterSeq));
     }
 
     @Override

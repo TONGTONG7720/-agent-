@@ -45,7 +45,10 @@ public class TaskController {
                                     boolean autoMode) {
     }
 
-    public record ApproveRequest(@NotBlank String decision, String comment) {
+    public record ApproveRequest(@NotBlank String decision, String comment, String target) {
+    }
+
+    public record IterateRequest(@NotBlank String feedback) {
     }
 
     @PostMapping
@@ -90,7 +93,17 @@ public class TaskController {
     @PostMapping("/{id}/approve")
     public Result<Void> approve(@PathVariable Long id,
                                 @Validated @RequestBody ApproveRequest req) {
-        taskService.approve(id, req.decision(), req.comment());
+        taskService.approve(id, req.decision(), req.comment(), req.target());
+        return Result.ok();
+    }
+
+    @PostMapping("/{id}/iterate")
+    public Result<Void> iterate(@PathVariable Long id,
+                                @Validated @RequestBody IterateRequest req) {
+        taskService.iterate(id, req.feedback());
+        if (props.isRelayEnabled()) {
+            relay.startRelay(id);   // 新一轮事件流重新订阅
+        }
         return Result.ok();
     }
 

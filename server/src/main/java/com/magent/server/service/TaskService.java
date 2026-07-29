@@ -82,11 +82,20 @@ public class TaskService {
         taskMapper.updateById(task);
     }
 
-    /** 审批通过/驳回后恢复执行。 */
-    public void approve(Long taskId, String decision, String comment) {
+    /** 审批通过/驳回后恢复执行；target 为驳回定向回退目标（可空，按门默认）。 */
+    public void approve(Long taskId, String decision, String comment, String target) {
         Task task = getOrThrow(taskId);
         requireStatus(task, "waiting_review");
-        agentClient.resume(task.agentTaskId(), decision, comment);
+        agentClient.resume(task.agentTaskId(), decision, comment, target);
+        task.setStatus("running");
+        taskMapper.updateById(task);
+    }
+
+    /** 已完成任务的多轮迭代：仅 done 可调。 */
+    public void iterate(Long taskId, String feedback) {
+        Task task = getOrThrow(taskId);
+        requireStatus(task, "done");
+        agentClient.iterate(task.agentTaskId(), feedback, eventService.maxSeq(taskId));
         task.setStatus("running");
         taskMapper.updateById(task);
     }
