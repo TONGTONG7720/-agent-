@@ -4,11 +4,12 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import StreamingResponse
 
 from .config import settings
+from .gitops import push_task
 from .graph.builder import build_graph
 from .llm import default_llm_factory
 from .runner import TaskManager
 from .sandbox import run_pytest
-from .schemas import IterateRequest, ResumeRequest, RetryRequest, StartTaskRequest
+from .schemas import IterateRequest, PushRequest, ResumeRequest, RetryRequest, StartTaskRequest
 
 
 def check_token(x_internal_token: str = Header(default="")):
@@ -81,6 +82,14 @@ def create_app(manager: TaskManager | None = None) -> FastAPI:
     async def cancel(task_id: str):
         manager.cancel(task_id)
         return {"code": 0, "message": "canceled"}
+
+    @app.post("/agent/tasks/{task_id}/push", dependencies=[Depends(check_token)])
+    async def push(task_id: str, req: PushRequest):
+        try:
+            branch = push_task(task_id, req.repo_url, req.token, req.branch)
+        except RuntimeError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        return {"code": 0, "message": "pushed", "branch": branch}
 
     return app
 

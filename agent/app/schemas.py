@@ -38,3 +38,9 @@ class IterateRequest(BaseModel):
 
 class RetryRequest(BaseModel):
     after_seq: int | None = None  # server 已落库的最大事件序号，重试后 seq 从其之后续号
+
+
+class PushRequest(BaseModel):
+    repo_url: str                 # 目标仓库（https 或本地路径）
+    token: str | None = None      # https 时可选注入；不落盘不回显
+    branch: str | None = None     # 缺省自动生成 magent/{taskId}-{ts}
