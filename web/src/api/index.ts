@@ -49,6 +49,12 @@ export interface LlmModelView {
 export interface RoleConfig {
   id: number
   role: string
+  name: string | null
+  kind: string | null            // analysis | code | test | review
+  ord: number | null
+  enabled: boolean | null
+  hasGate: boolean | null
+  reworkTarget: string | null
   systemPrompt: string | null
   defaultModelId: number | null
 }
@@ -82,5 +88,15 @@ export const api = {
     http.post<LlmModelView>('/api/models', { name, litellmModelName, apiKey }),
   listRoleConfigs: () => http.get<RoleConfig[]>('/api/role-configs'),
   updateRoleConfig: (role: string, systemPrompt: string | null, defaultModelId: number | null) =>
-    http.put<RoleConfig>(`/api/role-configs/${role}`, { systemPrompt, defaultModelId })
+    http.put<RoleConfig>(`/api/role-configs/${role}`, { systemPrompt, defaultModelId }),
+
+  // 流水线编排（自定义角色）
+  listPipeline: () => http.get<RoleConfig[]>('/api/pipeline'),
+  addRole: (body: { role: string; name: string; kind: string; hasGate: boolean; reworkTarget?: string }) =>
+    http.post<RoleConfig>('/api/pipeline/roles', body),
+  updateRole: (id: number, body: Partial<{ name: string; kind: string; hasGate: boolean;
+    enabled: boolean; reworkTarget: string | null; systemPrompt: string | null;
+    defaultModelId: number | null }>) => http.put<RoleConfig>(`/api/pipeline/roles/${id}`, body),
+  deleteRole: (id: number) => http.post<void>(`/api/pipeline/roles/${id}/delete`),
+  reorderPipeline: (orderedIds: number[]) => http.post<void>('/api/pipeline/reorder', { orderedIds })
 }
