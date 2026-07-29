@@ -1,17 +1,20 @@
 <template>
   <div>
-    <div class="head">
-      <h2 class="page-title">我的项目</h2>
+    <div class="page-head">
+      <div>
+        <h2>我的项目</h2>
+        <div class="sub">{{ projects.length }} 个项目 · {{ tasks.length }} 个任务</div>
+      </div>
       <el-button type="primary" size="large" @click="createDlg = true">新建项目</el-button>
     </div>
 
     <el-row :gutter="20">
-      <el-col v-for="p in projects" :key="p.id" :span="8" style="margin-bottom:20px">
+      <el-col v-for="p in projects" :key="p.id" :xs="24" :md="12" :lg="8" style="margin-bottom:20px">
         <el-card shadow="never" class="hoverable sticker-card pop-in">
           <template #header>
             <div class="card-head">
               <span class="proj-name">{{ p.name }}</span>
-              <el-button size="small" type="primary" @click="openTaskDlg(p)">发起任务</el-button>
+              <span class="proj-meta">{{ tasksOf(p.id).length }} 个任务</span>
             </div>
           </template>
           <div v-for="t in tasksOf(p.id)" :key="t.id" class="task-row"
@@ -20,7 +23,8 @@
             <span class="req">{{ t.requirement }}</span>
             <span :class="statusClass(t.status)">{{ statusText(t.status) }}</span>
           </div>
-          <div v-if="tasksOf(p.id).length === 0" class="no-task">还没有任务，点右上角发起一个</div>
+          <div v-if="tasksOf(p.id).length === 0" class="no-task">还没有任务</div>
+          <el-button class="new-task-btn" @click="openTaskDlg(p)">发起新任务</el-button>
         </el-card>
       </el-col>
     </el-row>
@@ -71,7 +75,7 @@ const autoMode = ref(false)
 const creating = ref(false)
 
 function tasksOf(projectId: number): Task[] {
-  return tasks.value.filter((t) => t.projectId === projectId).slice(0, 5)
+  return tasks.value.filter((t) => t.projectId === projectId).slice(0, 6)
 }
 
 async function load() {
@@ -115,24 +119,28 @@ onMounted(load)
 </script>
 
 <style scoped>
-.head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+.proj-name { font-size: 16px; }
+.proj-meta {
+  font-size: 12px;
+  color: hsl(250 12% 55%);
+  font-family: var(--font-body);
 }
-.page-title { margin: 0; font-size: 24px; }
 .card-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.proj-name { font-size: 16px; }
 .no-task {
   text-align: center;
   color: hsl(250 12% 55%);
   font-size: 13px;
-  padding: 14px 0 4px;
+  padding: 10px 0;
+}
+.new-task-btn {
+  width: 100%;
+  margin-top: 4px;
+  border-style: dashed !important;
+  color: hsl(var(--c-primary-deep));
 }
 .empty-wrap {
   display: flex;
@@ -147,5 +155,5 @@ onMounted(load)
   box-shadow: var(--shadow-sticker);
   background: hsl(var(--c-paper));
 }
-.empty-text { margin-top: 18px; font-size: 16px; color: hsl(250 12% 45%); }
+.empty-text { margin-top: 18px; font-size: 15px; color: hsl(250 12% 45%); }
 </style>

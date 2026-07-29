@@ -1,5 +1,6 @@
 <template>
   <div v-if="task">
+    <el-button class="back-btn" text @click="router.push('/projects')">← 返回项目</el-button>
     <div class="head sticker-card">
       <div class="head-left">
         <div class="task-badge">#{{ task.id }}</div>
@@ -37,19 +38,21 @@
 
       <!-- 中间：事件流（聊天气泡） -->
       <el-col :span="12">
-        <el-card v-loading="loading" body-style="max-height:66vh;overflow:auto">
+        <el-card v-loading="loading">
           <template #header>协作实况</template>
-          <div v-if="store.messages.length === 0" class="waiting">
-            <img src="../assets/logo.png" alt="思考中" class="waiting-logo float-soft" />
-            <div>小队正在思考，稍等片刻</div>
-          </div>
-          <div v-for="m in store.messages" :key="m.seq" class="msg pop-in">
-            <div class="agent-avatar">
-              <img :src="AGENT_META[m.agent]?.avatar" :alt="m.agent" />
+          <div ref="streamBody" class="stream-body">
+            <div v-if="store.messages.length === 0" class="waiting">
+              <img src="../assets/logo.png" alt="思考中" class="waiting-logo float-soft" />
+              <div>小队正在思考，稍等片刻</div>
             </div>
-            <div class="msg-main">
-              <div class="msg-name">{{ AGENT_META[m.agent]?.name ?? m.agent }}</div>
-              <pre class="chat-bubble msg-body">{{ m.content }}</pre>
+            <div v-for="m in store.messages" :key="m.seq" class="msg pop-in">
+              <div class="agent-avatar">
+                <img :src="AGENT_META[m.agent]?.avatar" :alt="m.agent" />
+              </div>
+              <div class="msg-main">
+                <div class="msg-name">{{ AGENT_META[m.agent]?.name ?? m.agent }}</div>
+                <pre :class="['chat-bubble', 'msg-body', m.agent]">{{ m.content }}</pre>
+              </div>
             </div>
           </div>
         </el-card>
@@ -82,8 +85,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { api, type Artifact, type Task } from '../api'
 import { getToken } from '../api/http'
@@ -91,6 +94,7 @@ import { useTaskEventsStore } from '../stores/taskEvents'
 import { AGENT_META, AGENT_ORDER, ARTIFACT_TYPE_TEXT, GATE_TEXT, statusClass, statusText } from '../utils/status'
 
 const route = useRoute()
+const router = useRouter()
 const store = useTaskEventsStore()
 const taskId = Number(route.params.id)
 const task = ref<Task | null>(null)
@@ -98,6 +102,7 @@ const artifacts = ref<Artifact[]>([])
 const comment = ref('')
 const approving = ref(false)
 const loading = ref(true)
+const streamBody = ref<HTMLElement>()
 
 const isTerminal = computed(() =>
   task.value ? ['done', 'failed', 'canceled'].includes(task.value.status) : false)
@@ -140,6 +145,12 @@ async function onCancel() {
   await refreshTask()
 }
 
+// 新消息自动滚到底部，保持跟读体验
+watch(() => store.messages.length, async () => {
+  await nextTick()
+  streamBody.value?.scrollTo({ top: streamBody.value.scrollHeight, behavior: 'smooth' })
+})
+
 // 事件推进时同步任务状态与产物（interrupt/终态/产物事件都会引起变化）
 watch(() => store.events.length, async () => {
   const last = store.events[store.events.length - 1]
@@ -158,6 +169,16 @@ onUnmounted(() => store.disconnect())
 </script>
 
 <style scoped>
+.back-btn {
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: hsl(var(--c-primary-deep));
+}
+.stream-body {
+  max-height: 62vh;
+  overflow: auto;
+  padding-right: 4px;
+}
 .head {
   display: flex;
   justify-content: space-between;

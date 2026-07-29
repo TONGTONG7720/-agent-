@@ -19,7 +19,13 @@
       </div>
     </el-header>
     <el-main class="main dotted-bg">
-      <router-view />
+      <div class="page-wrap">
+        <router-view v-slot="{ Component }">
+          <transition name="page" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
+      </div>
     </el-main>
   </el-container>
 </template>
@@ -77,5 +83,5 @@ function onLogout() {
   border-radius: var(--radius-pill);
   font-weight: 700;
 }
-.main { padding: 20px 28px; }
+.main { padding: 24px 28px 40px; }
 </style>

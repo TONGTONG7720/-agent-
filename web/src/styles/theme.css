@@ -265,3 +265,90 @@ h1, h2, h3, .font-display, .el-card__header, .el-dialog__title {
   border: 2px solid hsl(var(--c-ink));
   animation: float-soft 1.4s ease-in-out infinite;
 }
+
+/* ============================================================
+   精致化细则：滚动条/选区/焦点/容器/过渡/弹层全套主题化
+   ============================================================ */
+
+/* 细圆滚动条 */
+* { scrollbar-width: thin; scrollbar-color: hsl(var(--c-ink) / .25) transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: hsl(var(--c-ink) / .22);
+  border-radius: var(--radius-pill);
+}
+*::-webkit-scrollbar-thumb:hover { background: hsl(var(--c-ink) / .38); }
+
+::selection { background: hsl(var(--c-primary) / .25); }
+
+:focus-visible {
+  outline: 2.5px solid hsl(var(--c-primary));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* 内容容器：宽屏不拉破版式 */
+.page-wrap { max-width: 1240px; margin: 0 auto; }
+
+/* 页面头部：标题 + 副标题节奏 */
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 22px;
+}
+.page-head h2 { margin: 0; font-size: 24px; }
+.page-head .sub { font-size: 13px; color: hsl(250 12% 55%); margin-top: 5px; }
+
+/* 路由切换轻过渡 */
+.page-enter-active, .page-leave-active { transition: opacity .18s ease, transform .18s ease; }
+.page-enter-from { opacity: 0; transform: translateY(10px); }
+.page-leave-to   { opacity: 0; }
+
+/* 卡片头部奶油底色，强化分区 */
+.el-card { --el-card-padding: 18px; }
+.el-card__header {
+  padding: 13px 18px !important;
+  background: hsl(var(--c-cream) / .7);
+  border-radius: 17px 17px 0 0;
+  font-size: 15px;
+}
+
+/* 普通按钮也统一描边语言 */
+.el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--danger):not(.el-button--warning):not(.is-text):not(.is-link) {
+  border: 2px solid hsl(var(--c-ink) / .7) !important;
+}
+
+/* 消息提示 / 确认框 / 下拉面板全套贴纸化 */
+.el-message {
+  border: 2px solid hsl(var(--c-ink)) !important;
+  border-radius: 14px !important;
+  box-shadow: 4px 4px 0 hsl(var(--c-ink) / .85) !important;
+  font-weight: 600;
+}
+.el-message-box {
+  border: var(--border-cartoon) !important;
+  border-radius: var(--radius-blob) !important;
+  box-shadow: 8px 8px 0 hsl(var(--c-ink) / .85) !important;
+}
+.el-popper.is-light {
+  border: 2px solid hsl(var(--c-ink) / .8) !important;
+  border-radius: 14px !important;
+  box-shadow: 4px 4px 0 hsl(var(--c-ink) / .18) !important;
+}
+.el-dropdown-menu { border-radius: 12px; }
+.el-dropdown-menu__item:hover { background: hsl(var(--c-primary) / .1) !important; }
+.el-select-dropdown__item.is-selected { color: hsl(var(--c-primary-deep)); font-weight: 700; }
+
+/* 表格（管理页）去默认感 */
+.el-table th.el-table__cell { font-weight: 700; color: hsl(var(--c-ink)); }
+.el-table .el-table__row:hover > td.el-table__cell { background: hsl(var(--c-primary) / .06) !important; }
+.el-table::before { display: none; }
+
+/* 聊天气泡按角色淡色染色（身份感不靠 emoji 靠色彩） */
+.chat-bubble.pm        { background: hsl(var(--c-yellow) / .12); }
+.chat-bubble.architect { background: hsl(var(--c-sky) / .09); }
+.chat-bubble.coder     { background: hsl(var(--c-primary) / .07); }
+.chat-bubble.tester    { background: hsl(var(--c-mint) / .10); }
+.chat-bubble.reviewer  { background: hsl(var(--c-pink) / .09); }

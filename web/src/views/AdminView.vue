@@ -1,6 +1,11 @@
 <template>
   <div>
-    <h2 class="page-title">系统管理</h2>
+    <div class="page-head">
+      <div>
+        <h2>系统管理</h2>
+        <div class="sub">模型接入与 Agent 角色的提示词/默认模型配置</div>
+      </div>
+    </div>
     <el-row :gutter="20">
       <el-col :span="12">
         <el-card>
@@ -139,7 +144,6 @@ onMounted(load)
 </script>
 
 <style scoped>
-.page-title { margin: 0 0 20px; font-size: 24px; }
 .card-head {
   display: flex;
   justify-content: space-between;
