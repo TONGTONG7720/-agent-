@@ -30,6 +30,11 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
   const resp = await fetch(url, { ...init, headers })
   if (resp.status === 401) {
     clearToken()
+    // 会话失效直接回登录页（登录接口自身除外；node 测试环境无 location 则跳过）
+    if (typeof location !== 'undefined' && !url.includes('/api/auth/login')
+        && !location.pathname.startsWith('/login')) {
+      location.href = '/login'
+    }
   }
   const body = (await resp.json()) as Result<T>
   if (!resp.ok || body.code !== 0) {
