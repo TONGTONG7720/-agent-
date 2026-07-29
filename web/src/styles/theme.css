@@ -352,3 +352,148 @@ h1, h2, h3, .font-display, .el-card__header, .el-dialog__title {
 .chat-bubble.coder     { background: hsl(var(--c-primary) / .07); }
 .chat-bubble.tester    { background: hsl(var(--c-mint) / .10); }
 .chat-bubble.reviewer  { background: hsl(var(--c-pink) / .09); }
+
+/* ============================================================
+   仪表盘与内容排版：统计卡 / 提醒条 / Markdown / 进度条
+   ============================================================ */
+
+/* 统计卡 */
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+}
+.stat-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  border: 2px solid hsl(var(--c-ink));
+  box-shadow: 2px 2px 0 hsl(var(--c-ink) / .8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex: none;
+}
+.stat-icon.violet { background: hsl(var(--c-primary) / .16); color: hsl(var(--c-primary-deep)); }
+.stat-icon.pink   { background: hsl(var(--c-pink) / .18);    color: hsl(335 70% 48%); }
+.stat-icon.yellow { background: hsl(var(--c-yellow) / .28);  color: hsl(35 90% 36%); }
+.stat-icon.mint   { background: hsl(var(--c-mint) / .2);     color: hsl(160 70% 28%); }
+.stat-num {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1;
+}
+.stat-label { font-size: 12.5px; color: hsl(250 12% 52%); margin-top: 5px; }
+
+/* 待审批提醒条 */
+.alert-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 16px;
+  background: hsl(var(--c-yellow) / .2);
+  border: 2px solid hsl(var(--c-ink));
+  border-radius: 16px;
+  box-shadow: var(--shadow-sticker);
+  margin-bottom: 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.alert-strip .link-chip {
+  cursor: pointer;
+  padding: 3px 12px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid hsl(var(--c-ink) / .8);
+  background: hsl(var(--c-paper));
+  transition: var(--transition-bounce);
+}
+.alert-strip .link-chip:hover {
+  background: hsl(var(--c-primary));
+  color: hsl(var(--c-paper));
+  transform: translateY(-2px);
+}
+
+/* Markdown 正文排版（Agent 产出渲染） */
+.md-body { font-size: 13.5px; line-height: 1.75; }
+.md-body > :first-child { margin-top: 0; }
+.md-body > :last-child { margin-bottom: 0; }
+.md-body h1, .md-body h2, .md-body h3, .md-body h4 {
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  font-weight: 700;
+  margin: 16px 0 8px;
+  padding-left: 9px;
+  border-left: 3.5px solid hsl(var(--c-primary));
+  letter-spacing: 0;
+}
+.md-body p { margin: 7px 0; }
+.md-body code {
+  background: hsl(var(--c-primary) / .09);
+  border: 1px solid hsl(var(--c-primary) / .18);
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 12.5px;
+}
+.md-body pre {
+  background: hsl(250 25% 16%);
+  color: hsl(46 100% 96%);
+  padding: 14px 16px;
+  border-radius: 12px;
+  overflow: auto;
+  border: 2px solid hsl(var(--c-ink));
+}
+.md-body pre code { background: transparent; border: none; color: inherit; padding: 0; }
+.md-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 10px 0;
+  font-size: 12.5px;
+  background: hsl(var(--c-paper));
+}
+.md-body th, .md-body td {
+  border: 1.5px solid hsl(var(--c-ink) / .22);
+  padding: 6px 10px;
+  text-align: left;
+}
+.md-body th { background: hsl(var(--c-primary) / .1); font-weight: 700; }
+.md-body ul, .md-body ol { padding-left: 22px; margin: 7px 0; }
+.md-body li { margin: 3px 0; }
+.md-body blockquote {
+  margin: 8px 0;
+  padding: 6px 12px;
+  border-left: 3.5px solid hsl(var(--c-pink));
+  background: hsl(var(--c-pink) / .07);
+  border-radius: 0 10px 10px 0;
+}
+.md-body hr { border: none; border-top: 2px dashed hsl(var(--c-ink) / .2); margin: 12px 0; }
+
+/* 团队进度条 */
+.progress-track {
+  height: 12px;
+  border-radius: var(--radius-pill);
+  border: 2px solid hsl(var(--c-ink) / .85);
+  background: hsl(var(--c-paper));
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--gradient-candy);
+  transition: width .5s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* 小型元信息胶囊（任务头部） */
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: hsl(250 12% 45%);
+  background: hsl(var(--c-ink) / .05);
+  border: 1.5px solid hsl(var(--c-ink) / .15);
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+}

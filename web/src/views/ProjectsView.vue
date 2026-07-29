@@ -2,37 +2,78 @@
   <div>
     <div class="page-head">
       <div>
-        <h2>我的项目</h2>
-        <div class="sub">{{ projects.length }} 个项目 · {{ tasks.length }} 个任务</div>
+        <h2>工作台</h2>
+        <div class="sub">让 AI 小队替你完成从需求到代码的全流程</div>
       </div>
       <el-button type="primary" size="large" @click="createDlg = true">新建项目</el-button>
     </div>
 
-    <el-row :gutter="20">
-      <el-col v-for="p in projects" :key="p.id" :xs="24" :md="12" :lg="8" style="margin-bottom:20px">
-        <el-card shadow="never" class="hoverable sticker-card pop-in">
-          <template #header>
-            <div class="card-head">
-              <span class="proj-name">{{ p.name }}</span>
-              <span class="proj-meta">{{ tasksOf(p.id).length }} 个任务</span>
-            </div>
-          </template>
-          <div v-for="t in tasksOf(p.id)" :key="t.id" class="task-row"
-               @click="router.push(`/tasks/${t.id}`)">
-            <span class="no">#{{ t.id }}</span>
-            <span class="req">{{ t.requirement }}</span>
-            <span :class="statusClass(t.status)">{{ statusText(t.status) }}</span>
+    <!-- 统计概览 -->
+    <el-row :gutter="20" style="margin-bottom:20px">
+      <el-col v-for="s in stats" :key="s.label" :xs="12" :md="6" style="margin-bottom:12px">
+        <div class="sticker-card stat-card pop-in">
+          <div class="stat-icon" :class="s.color"><el-icon :size="22"><component :is="s.icon" /></el-icon></div>
+          <div>
+            <div class="stat-num">{{ s.value }}</div>
+            <div class="stat-label">{{ s.label }}</div>
           </div>
-          <div v-if="tasksOf(p.id).length === 0" class="no-task">还没有任务</div>
-          <el-button class="new-task-btn" @click="openTaskDlg(p)">发起新任务</el-button>
-        </el-card>
+        </div>
       </el-col>
     </el-row>
 
-    <div v-if="projects.length === 0" class="empty-wrap pop-in">
-      <img src="../assets/empty-state.png" alt="空状态" class="empty-img float-soft" />
-      <div class="empty-text">还没有项目，点右上角创建第一个</div>
+    <!-- 待审批提醒 -->
+    <div v-if="waitingTasks.length" class="alert-strip pop-in">
+      <span>有 {{ waitingTasks.length }} 个任务等待你审批：</span>
+      <span v-for="t in waitingTasks" :key="t.id" class="link-chip"
+            @click="router.push(`/tasks/${t.id}`)">#{{ t.id }} {{ shorten(t.requirement) }}</span>
     </div>
+
+    <el-row :gutter="20">
+      <!-- 项目网格 -->
+      <el-col :xs="24" :lg="16">
+        <el-row :gutter="20">
+          <el-col v-for="p in projects" :key="p.id" :xs="24" :md="12" style="margin-bottom:20px">
+            <el-card shadow="never" class="hoverable sticker-card pop-in">
+              <template #header>
+                <div class="card-head">
+                  <span class="proj-name">{{ p.name }}</span>
+                  <span class="proj-meta">{{ allTasksOf(p.id).length }} 个任务 · {{ fmtDate(p.createdAt) }}</span>
+                </div>
+              </template>
+              <div v-for="t in tasksOf(p.id)" :key="t.id" class="task-row"
+                   @click="router.push(`/tasks/${t.id}`)">
+                <span class="no">#{{ t.id }}</span>
+                <span class="req">{{ t.requirement }}</span>
+                <span :class="statusClass(t.status)">{{ statusText(t.status) }}</span>
+              </div>
+              <div v-if="tasksOf(p.id).length === 0" class="no-task">还没有任务</div>
+              <el-button class="new-task-btn" @click="openTaskDlg(p)">发起新任务</el-button>
+            </el-card>
+          </el-col>
+        </el-row>
+        <div v-if="projects.length === 0" class="empty-wrap pop-in">
+          <img src="../assets/empty-state.png" alt="空状态" class="empty-img float-soft" />
+          <div class="empty-text">还没有项目，点右上角创建第一个</div>
+        </div>
+      </el-col>
+
+      <!-- 最近动态 -->
+      <el-col :xs="24" :lg="8">
+        <el-card>
+          <template #header>最近任务</template>
+          <div v-for="t in recentTasks" :key="t.id" class="task-row"
+               @click="router.push(`/tasks/${t.id}`)">
+            <span class="no">#{{ t.id }}</span>
+            <span class="req">
+              {{ t.requirement }}
+              <span class="proj-tag">{{ projectName(t.projectId) }}</span>
+            </span>
+            <span :class="statusClass(t.status)">{{ statusText(t.status) }}</span>
+          </div>
+          <div v-if="recentTasks.length === 0" class="no-task">暂无任务记录</div>
+        </el-card>
+      </el-col>
+    </el-row>
 
     <el-dialog v-model="createDlg" title="新建项目" width="420px">
       <el-input v-model="newProjectName" placeholder="项目名称" />
@@ -57,9 +98,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { CircleCheck, FolderOpened, Loading, Tickets } from '@element-plus/icons-vue'
 import { api, type Project, type Task } from '../api'
 import { statusClass, statusText } from '../utils/status'
 
@@ -74,8 +116,39 @@ const requirement = ref('')
 const autoMode = ref(false)
 const creating = ref(false)
 
+const stats = computed(() => [
+  { label: '项目', value: projects.value.length, icon: FolderOpened, color: 'violet' },
+  { label: '全部任务', value: tasks.value.length, icon: Tickets, color: 'pink' },
+  {
+    label: '进行中 / 待审批', icon: Loading, color: 'yellow',
+    value: tasks.value.filter(t => t.status === 'running' || t.status === 'waiting_review').length
+  },
+  { label: '已完成', value: tasks.value.filter(t => t.status === 'done').length, icon: CircleCheck, color: 'mint' }
+])
+
+const waitingTasks = computed(() => tasks.value.filter(t => t.status === 'waiting_review'))
+
+const recentTasks = computed(() =>
+  [...tasks.value].sort((a, b) => b.id - a.id).slice(0, 8))
+
+function allTasksOf(projectId: number): Task[] {
+  return tasks.value.filter(t => t.projectId === projectId)
+}
+
 function tasksOf(projectId: number): Task[] {
-  return tasks.value.filter((t) => t.projectId === projectId).slice(0, 6)
+  return allTasksOf(projectId).slice(0, 4)
+}
+
+function projectName(projectId: number): string {
+  return projects.value.find(p => p.id === projectId)?.name ?? ''
+}
+
+function shorten(s: string): string {
+  return s.length > 14 ? s.slice(0, 14) + '…' : s
+}
+
+function fmtDate(s: string): string {
+  return s ? s.slice(0, 10) : ''
 }
 
 async function load() {
@@ -129,6 +202,14 @@ onMounted(load)
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.proj-tag {
+  font-size: 11px;
+  color: hsl(var(--c-primary-deep));
+  background: hsl(var(--c-primary) / .1);
+  border-radius: var(--radius-pill);
+  padding: 1px 8px;
+  margin-left: 6px;
 }
 .no-task {
   text-align: center;

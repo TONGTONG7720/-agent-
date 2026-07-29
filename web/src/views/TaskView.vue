@@ -6,7 +6,11 @@
         <div class="task-badge">#{{ task.id }}</div>
         <div>
           <div class="task-title">{{ task.requirement }}</div>
-          <div class="task-sub">AI 小队正在为这个需求工作</div>
+          <div class="meta-row">
+            <span class="meta-chip">{{ task.autoMode ? '全自动模式' : '人工审批模式' }}</span>
+            <span v-if="task.currentNode" class="meta-chip">环节：{{ nodeLabel(task.currentNode) }}</span>
+            <span class="meta-chip">创建于 {{ fmtTime(task.createdAt) }}</span>
+          </div>
         </div>
       </div>
       <div class="head-right">
@@ -20,7 +24,15 @@
       <!-- 左侧：角色流水线 -->
       <el-col :span="5">
         <el-card>
-          <template #header>AI 小队</template>
+          <template #header>
+            <div class="crew-head">
+              <span>AI 小队</span>
+              <span class="crew-progress-text">{{ activeStep }}/{{ AGENT_ORDER.length }}</span>
+            </div>
+          </template>
+          <div class="progress-track" style="margin-bottom:14px">
+            <div class="progress-fill" :style="{ width: (activeStep / AGENT_ORDER.length * 100) + '%' }" />
+          </div>
           <div v-for="(r, i) in AGENT_ORDER" :key="r" class="crew-row"
                :class="{ active: r === store.currentAgent && !store.finished, done: i < activeStep }">
             <div class="agent-avatar" :class="{ wiggle: r === store.currentAgent && !store.finished }">
@@ -51,7 +63,7 @@
               </div>
               <div class="msg-main">
                 <div class="msg-name">{{ AGENT_META[m.agent]?.name ?? m.agent }}</div>
-                <pre :class="['chat-bubble', 'msg-body', m.agent]">{{ m.content }}</pre>
+                <div :class="['chat-bubble', 'md-body', m.agent]" v-html="renderMd(m.content)" />
               </div>
             </div>
           </div>
@@ -88,6 +100,8 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { api, type Artifact, type Task } from '../api'
 import { getToken } from '../api/http'
 import { useTaskEventsStore } from '../stores/taskEvents'
@@ -111,6 +125,19 @@ const activeStep = computed(() => {
   const idx = AGENT_ORDER.indexOf(store.currentAgent)
   return idx < 0 ? 0 : (store.finished ? AGENT_ORDER.length : idx)
 })
+
+/** Agent 产出按 Markdown 渲染（DOMPurify 消毒防注入）。 */
+function renderMd(content: string): string {
+  return DOMPurify.sanitize(marked.parse(content, { async: false }) as string)
+}
+
+function nodeLabel(node: string): string {
+  return GATE_TEXT[node] ?? AGENT_META[node]?.name ?? node
+}
+
+function fmtTime(s: string): string {
+  return s ? s.slice(0, 16).replace('T', ' ') : ''
+}
 
 function downloadUrl(id: number): string {
   return `/api/artifacts/${id}/download?satoken=${encodeURIComponent(getToken())}`
@@ -197,7 +224,13 @@ onUnmounted(() => store.disconnect())
   font-weight: 700;
 }
 .task-title { font-size: 17px; font-weight: 700; }
-.task-sub { font-size: 12px; color: hsl(250 12% 55%); margin-top: 2px; }
+.meta-row { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.crew-head { display: flex; justify-content: space-between; align-items: center; }
+.crew-progress-text {
+  font-size: 13px;
+  color: hsl(var(--c-primary-deep));
+  font-family: var(--font-display);
+}
 .head-right { display: flex; gap: 12px; align-items: center; }
 
 /* 左侧小队 */
@@ -237,14 +270,6 @@ onUnmounted(() => store.disconnect())
 .msg { display: flex; gap: 12px; margin-bottom: 18px; }
 .msg-main { flex: 1; min-width: 0; }
 .msg-name { font-weight: 700; font-size: 13px; margin-bottom: 5px; }
-.msg-body {
-  white-space: pre-wrap;
-  word-break: break-word;
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.7;
-  font-family: var(--el-font-family);
-}
 
 /* 审批卡 */
 .gate-card :deep(.el-card__header) {
