@@ -5,7 +5,10 @@
         <h2>工作台</h2>
         <div class="sub">让 AI 小队替你完成从需求到代码的全流程</div>
       </div>
-      <el-button type="primary" size="large" @click="createDlg = true">新建项目</el-button>
+      <div class="head-actions">
+        <el-button size="large" @click="openCompareDlg">模型对比</el-button>
+        <el-button type="primary" size="large" @click="createDlg = true">新建项目</el-button>
+      </div>
     </div>
 
     <!-- 统计概览 -->
@@ -99,20 +102,49 @@
         <el-button type="primary" :loading="creating" @click="onCreateTask">启动协作</el-button>
       </template>
     </el-dialog>
+    <el-dialog v-model="compareDlg" title="模型对比" width="560px">
+      <div class="cmp-tip">同一需求用两个模型各跑一遍（全自动），并排对比产出与消耗。</div>
+      <el-form label-width="90px" style="margin-top:12px">
+        <el-form-item label="所属项目">
+          <el-select v-model="cmp.projectId" placeholder="选择项目" style="width:100%">
+            <el-option v-for="p in projects" :key="p.id" :value="p.id" :label="p.name" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="需求">
+          <el-input v-model="cmp.requirement" type="textarea" :rows="4"
+                    placeholder="描述需求，两个模型将各自完成一遍" />
+        </el-form-item>
+        <el-form-item label="模型 A">
+          <el-select v-model="cmp.modelAId" placeholder="模型 A" style="width:100%">
+            <el-option v-for="m in models" :key="m.id" :value="m.id" :label="m.name" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="模型 B">
+          <el-select v-model="cmp.modelBId" placeholder="模型 B" style="width:100%">
+            <el-option v-for="m in models" :key="m.id" :value="m.id" :label="m.name" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="compareDlg = false">取消</el-button>
+        <el-button type="primary" :loading="comparing" @click="onCompare">开始对比</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { CircleCheck, FolderOpened, Loading, Tickets } from '@element-plus/icons-vue'
-import { api, type Project, type Task } from '../api'
+import { api, type LlmModelView, type Project, type Task } from '../api'
 import { statusClass, statusText } from '../utils/status'
 
 const router = useRouter()
 const projects = ref<Project[]>([])
 const tasks = ref<Task[]>([])
+const models = ref<LlmModelView[]>([])
 const createDlg = ref(false)
 const newProjectName = ref('')
 const taskDlg = ref(false)
@@ -120,6 +152,10 @@ const currentProject = ref<Project | null>(null)
 const requirement = ref('')
 const autoMode = ref(false)
 const creating = ref(false)
+const compareDlg = ref(false)
+const comparing = ref(false)
+const cmp = reactive({ projectId: null as number | null, requirement: '',
+  modelAId: null as number | null, modelBId: null as number | null })
 
 /** 需求模板库：一键填充常见任务描述 */
 const TEMPLATES = [
@@ -185,6 +221,31 @@ async function load() {
   tasks.value = all
 }
 
+function openCompareDlg() {
+  cmp.projectId = projects.value[0]?.id ?? null
+  cmp.requirement = ''
+  cmp.modelAId = models.value[0]?.id ?? null
+  cmp.modelBId = models.value[1]?.id ?? models.value[0]?.id ?? null
+  compareDlg.value = true
+}
+
+async function onCompare() {
+  if (!cmp.projectId || !cmp.requirement.trim() || !cmp.modelAId || !cmp.modelBId) {
+    ElMessage.warning('请选择项目、填写需求并选两个模型')
+    return
+  }
+  comparing.value = true
+  try {
+    const res = await api.compareTask(cmp.projectId, cmp.requirement.trim(), cmp.modelAId, cmp.modelBId)
+    compareDlg.value = false
+    router.push(`/compare/${res.taskAId}/${res.taskBId}`)
+  } catch (e) {
+    ElMessage.error((e as Error).message)
+  } finally {
+    comparing.value = false
+  }
+}
+
 function openTaskDlg(p: Project) {
   currentProject.value = p
   requirement.value = ''
@@ -213,11 +274,16 @@ async function onCreateTask() {
   }
 }
 
-onMounted(load)
+onMounted(async () => {
+  await load()
+  models.value = await api.listModels()
+})
 </script>
 
 <style scoped>
 .proj-name { font-size: 16px; }
+.head-actions { display: inline-flex; gap: 10px; }
+.cmp-tip { font-size: 13px; color: hsl(250 12% 55%); }
 .tpl-row {
   display: flex;
   align-items: center;

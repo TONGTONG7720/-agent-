@@ -76,6 +76,9 @@ export const api = {
   getTask: (id: number) => http.get<Task>(`/api/tasks/${id}`),
   createTask: (projectId: number, requirement: string, autoMode: boolean) =>
     http.post<Task>('/api/tasks', { projectId, requirement, autoMode }),
+  compareTask: (projectId: number, requirement: string, modelAId: number, modelBId: number) =>
+    http.post<{ taskAId: number; taskBId: number }>('/api/tasks/compare',
+      { projectId, requirement, modelAId, modelBId }),
   listEvents: (taskId: number, afterSeq: number) =>
     http.get<TaskEventDto[]>(`/api/tasks/${taskId}/events?afterSeq=${afterSeq}`),
   approve: (taskId: number, decision: 'pass' | 'reject', comment: string, target?: string) =>

@@ -12,6 +12,7 @@ const router = createRouter({
         { path: '', redirect: '/projects' },
         { path: 'projects', component: () => import('../views/ProjectsView.vue') },
         { path: 'tasks/:id', component: () => import('../views/TaskView.vue') },
+        { path: 'compare/:idA/:idB', component: () => import('../views/CompareView.vue') },
         { path: 'admin', component: () => import('../views/AdminView.vue'), meta: { admin: true } }
       ]
     }
