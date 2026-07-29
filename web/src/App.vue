@@ -6,9 +6,5 @@
 </script>
 
 <style>
-html, body, #app {
-  height: 100%;
-  margin: 0;
-  background: #f5f7fa;
-}
+/* 全局样式统一由 src/styles/theme.css 提供 */
 </style>

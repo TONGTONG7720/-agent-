@@ -1,0 +1,198 @@
+/* ============================================================
+   卡通动漫风设计系统 —— 全站唯一样式来源
+   糖果色 + 贴纸卡片(粗描边/硬投影) + 圆滚按钮 + 弹跳动效
+   ============================================================ */
+
+:root {
+  /* -- 色板（HSL）：紫罗兰主色 + 糖果点缀 + 奶油底 -- */
+  --c-primary: 258 85% 66%;        /* 紫罗兰 */
+  --c-primary-deep: 258 60% 52%;
+  --c-pink: 335 90% 72%;           /* 糖果粉 */
+  --c-yellow: 42 100% 65%;         /* 奶黄 */
+  --c-mint: 160 65% 55%;           /* 薄荷绿(成功) */
+  --c-coral: 8 90% 66%;            /* 珊瑚红(危险) */
+  --c-sky: 205 90% 62%;            /* 天空蓝(信息) */
+  --c-ink: 250 25% 22%;            /* 墨色描边/正文 */
+  --c-cream: 46 100% 97%;          /* 奶油底 */
+  --c-paper: 0 0% 100%;
+
+  /* -- 贴纸卡片三件套 -- */
+  --border-cartoon: 2.5px solid hsl(var(--c-ink));
+  --shadow-sticker: 4px 4px 0 hsl(var(--c-ink) / 0.9);
+  --shadow-sticker-hover: 7px 7px 0 hsl(var(--c-ink) / 0.9);
+  --radius-blob: 20px;
+  --radius-pill: 999px;
+
+  --gradient-candy: linear-gradient(135deg, hsl(var(--c-primary)) 0%, hsl(var(--c-pink)) 100%);
+  --gradient-cream: linear-gradient(180deg, hsl(var(--c-cream)) 0%, hsl(320 60% 96%) 100%);
+  --transition-bounce: all .25s cubic-bezier(.34, 1.56, .64, 1);
+
+  /* -- Element Plus 主题接管 -- */
+  --el-color-primary: hsl(var(--c-primary));
+  --el-color-primary-light-3: hsl(258 85% 74%);
+  --el-color-primary-light-5: hsl(258 85% 82%);
+  --el-color-primary-light-7: hsl(258 85% 89%);
+  --el-color-primary-light-8: hsl(258 85% 93%);
+  --el-color-primary-light-9: hsl(258 85% 96%);
+  --el-color-primary-dark-2: hsl(var(--c-primary-deep));
+  --el-color-success: hsl(var(--c-mint));
+  --el-color-warning: hsl(var(--c-yellow));
+  --el-color-danger: hsl(var(--c-coral));
+  --el-color-error: hsl(var(--c-coral));
+  --el-color-info: hsl(var(--c-sky));
+  --el-text-color-primary: hsl(var(--c-ink));
+  --el-text-color-regular: hsl(250 15% 35%);
+  --el-border-radius-base: 12px;
+  --el-border-radius-small: 10px;
+  --el-border-radius-round: var(--radius-pill);
+  --el-font-family: 'ZCOOL KuaiLe', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+/* ============ 全局基调 ============ */
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  font-family: var(--el-font-family);
+  color: hsl(var(--c-ink));
+  background: var(--gradient-cream) fixed;
+}
+
+/* 糖果波点背景 */
+.dotted-bg {
+  background-image: radial-gradient(hsl(var(--c-primary) / .10) 2.5px, transparent 2.5px);
+  background-size: 26px 26px;
+}
+
+/* ============ 贴纸卡片 ============ */
+.sticker-card {
+  background: hsl(var(--c-paper));
+  border: var(--border-cartoon);
+  border-radius: var(--radius-blob);
+  box-shadow: var(--shadow-sticker);
+  transition: var(--transition-bounce);
+}
+.sticker-card.hoverable:hover {
+  transform: translate(-3px, -3px) rotate(-.5deg);
+  box-shadow: var(--shadow-sticker-hover);
+}
+
+/* Element Plus 卡片改造成贴纸 */
+.el-card {
+  border: var(--border-cartoon) !important;
+  border-radius: var(--radius-blob) !important;
+  box-shadow: var(--shadow-sticker) !important;
+  overflow: visible;
+}
+.el-card__header {
+  border-bottom: 2.5px dashed hsl(var(--c-ink) / .25) !important;
+  font-weight: 700;
+}
+
+/* ============ 圆滚按钮 ============ */
+.el-button {
+  border-radius: var(--radius-pill) !important;
+  font-weight: 700;
+  transition: var(--transition-bounce) !important;
+}
+.el-button--primary,
+.el-button--success,
+.el-button--danger,
+.el-button--warning {
+  border: 2px solid hsl(var(--c-ink)) !important;
+  box-shadow: 3px 3px 0 hsl(var(--c-ink) / .85);
+}
+.el-button--primary { background: var(--gradient-candy) !important; }
+.el-button--primary:hover,
+.el-button--success:hover,
+.el-button--danger:hover,
+.el-button--warning:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 hsl(var(--c-ink) / .85);
+}
+.el-button--primary:active,
+.el-button--success:active,
+.el-button--danger:active,
+.el-button--warning:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 hsl(var(--c-ink) / .85);
+}
+
+/* ============ 输入框 / 对话框 / 标签 ============ */
+.el-input__wrapper, .el-textarea__inner {
+  border-radius: 14px !important;
+  box-shadow: 0 0 0 2px hsl(var(--c-ink) / .8) inset !important;
+}
+.el-input__wrapper.is-focus, .el-textarea__inner:focus {
+  box-shadow: 0 0 0 2.5px hsl(var(--c-primary)) inset !important;
+}
+.el-dialog {
+  border: var(--border-cartoon);
+  border-radius: var(--radius-blob) !important;
+  box-shadow: 8px 8px 0 hsl(var(--c-ink) / .85) !important;
+}
+.el-dialog__title { font-weight: 700; }
+.el-tag {
+  border-radius: var(--radius-pill) !important;
+  border-width: 1.5px !important;
+  font-weight: 700;
+}
+.el-table {
+  --el-table-border-color: hsl(var(--c-ink) / .12);
+  --el-table-header-bg-color: hsl(var(--c-primary) / .07);
+  border-radius: 12px;
+}
+
+/* ============ 角色头像气泡 ============ */
+.agent-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: var(--border-cartoon);
+  box-shadow: 2.5px 2.5px 0 hsl(var(--c-ink) / .85);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex: none;
+}
+.agent-avatar.pm       { background: hsl(var(--c-yellow) / .45); }
+.agent-avatar.architect{ background: hsl(var(--c-sky) / .35); }
+.agent-avatar.coder    { background: hsl(var(--c-primary) / .30); }
+.agent-avatar.tester   { background: hsl(var(--c-mint) / .35); }
+.agent-avatar.reviewer { background: hsl(var(--c-pink) / .35); }
+
+/* 聊天气泡（事件流） */
+.chat-bubble {
+  position: relative;
+  background: hsl(var(--c-paper));
+  border: 2px solid hsl(var(--c-ink) / .85);
+  border-radius: 4px 18px 18px 18px;
+  box-shadow: 3px 3px 0 hsl(var(--c-ink) / .18);
+  padding: 12px 16px;
+}
+
+/* ============ 动效 ============ */
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+@keyframes pop-in {
+  0%   { transform: scale(.85); opacity: 0; }
+  70%  { transform: scale(1.04); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-2deg); }
+  50%      { transform: rotate(2deg); }
+}
+.float-soft { animation: float-soft 3.2s ease-in-out infinite; }
+.pop-in     { animation: pop-in .35s cubic-bezier(.34, 1.56, .64, 1) both; }
+.wiggle     { animation: wiggle 1.2s ease-in-out infinite; }
+
+/* 运行中的呼吸圆点 */
+.pulse-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: hsl(var(--c-mint));
+  border: 2px solid hsl(var(--c-ink));
+  animation: float-soft 1.4s ease-in-out infinite;
+}

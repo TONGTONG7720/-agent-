@@ -1,17 +1,17 @@
 <template>
   <div>
     <div class="head">
-      <h2 style="margin:0">项目</h2>
-      <el-button type="primary" @click="createDlg = true">新建项目</el-button>
+      <h2 class="page-title">📁 我的项目</h2>
+      <el-button type="primary" size="large" @click="createDlg = true">＋ 新建项目</el-button>
     </div>
 
-    <el-row :gutter="16">
-      <el-col v-for="p in projects" :key="p.id" :span="8" style="margin-bottom:16px">
-        <el-card shadow="hover">
+    <el-row :gutter="20">
+      <el-col v-for="p in projects" :key="p.id" :span="8" style="margin-bottom:20px">
+        <el-card shadow="never" class="hoverable sticker-card pop-in">
           <template #header>
             <div class="card-head">
-              <span>{{ p.name }}</span>
-              <el-button size="small" type="primary" plain @click="openTaskDlg(p)">发起任务</el-button>
+              <span class="proj-name">🚀 {{ p.name }}</span>
+              <el-button size="small" type="primary" @click="openTaskDlg(p)">发起任务</el-button>
             </div>
           </template>
           <el-table :data="tasksOf(p.id)" size="small" @row-click="(row: Task) => router.push(`/tasks/${row.id}`)"
@@ -24,12 +24,17 @@
               </template>
             </el-table-column>
           </el-table>
+          <div v-if="tasksOf(p.id).length === 0" class="no-task">还没有任务，点右上角发起一个吧～</div>
         </el-card>
       </el-col>
     </el-row>
-    <el-empty v-if="projects.length === 0" description="还没有项目，点击右上角创建" />
 
-    <el-dialog v-model="createDlg" title="新建项目" width="420px">
+    <div v-if="projects.length === 0" class="empty-wrap pop-in">
+      <img src="../assets/empty-state.png" alt="空空如也" class="empty-img float-soft" />
+      <div class="empty-text">还没有项目哦，点右上角创建第一个吧！</div>
+    </div>
+
+    <el-dialog v-model="createDlg" title="🎉 新建项目" width="420px">
       <el-input v-model="newProjectName" placeholder="项目名称" />
       <template #footer>
         <el-button @click="createDlg = false">取消</el-button>
@@ -37,15 +42,15 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="taskDlg" :title="`发起任务 · ${currentProject?.name ?? ''}`" width="560px">
+    <el-dialog v-model="taskDlg" :title="`✨ 发起任务 · ${currentProject?.name ?? ''}`" width="560px">
       <el-input v-model="requirement" type="textarea" :rows="5"
-                placeholder="用一句话或一段话描述你要开发的需求，例如：写一个Python计算器，支持加减乘除和括号" />
+                placeholder="告诉小机器人们你想做什么，例如：写一个Python计算器，支持加减乘除和括号" />
       <div style="margin-top:12px">
         <el-switch v-model="autoMode" active-text="全自动模式（跳过人工审批）" />
       </div>
       <template #footer>
         <el-button @click="taskDlg = false">取消</el-button>
-        <el-button type="primary" :loading="creating" @click="onCreateTask">启动多Agent协作</el-button>
+        <el-button type="primary" :loading="creating" @click="onCreateTask">🚀 启动多Agent协作</el-button>
       </template>
     </el-dialog>
   </div>
@@ -118,11 +123,33 @@ onMounted(load)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
+.page-title { margin: 0; font-size: 24px; }
 .card-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+.proj-name { font-size: 16px; }
+.no-task {
+  text-align: center;
+  color: hsl(250 12% 55%);
+  font-size: 13px;
+  padding: 14px 0 4px;
+}
+.empty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 0;
+}
+.empty-img {
+  width: 240px;
+  border-radius: 24px;
+  border: var(--border-cartoon);
+  box-shadow: var(--shadow-sticker);
+  background: hsl(var(--c-paper));
+}
+.empty-text { margin-top: 18px; font-size: 16px; color: hsl(250 12% 45%); }
 </style>

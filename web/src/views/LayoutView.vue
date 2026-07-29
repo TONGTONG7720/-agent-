@@ -1,20 +1,24 @@
 <template>
   <el-container style="height:100%">
     <el-header class="topbar">
-      <span class="brand" @click="router.push('/projects')">🤖 多Agent协同开发平台</span>
-      <div>
-        <el-button v-if="auth.isAdmin" text @click="router.push('/admin')">系统管理</el-button>
+      <span class="brand" @click="router.push('/projects')">
+        <span class="brand-icon wiggle">🤖</span> 多Agent协同开发平台
+      </span>
+      <div class="right">
+        <el-button v-if="auth.isAdmin" class="nav-btn" text @click="router.push('/admin')">
+          ⚙️ 系统管理
+        </el-button>
         <el-dropdown>
-          <span class="user">{{ auth.username }}<el-icon><ArrowDown /></el-icon></span>
+          <span class="user-chip">🧑‍🚀 {{ auth.username }}<el-icon><ArrowDown /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="onLogout">退出登录</el-dropdown-item>
+              <el-dropdown-item @click="onLogout">👋 退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
       </div>
     </el-header>
-    <el-main style="padding:16px 24px">
+    <el-main class="main dotted-bg">
       <router-view />
     </el-main>
   </el-container>
@@ -36,22 +40,45 @@ function onLogout() {
 
 <style scoped>
 .topbar {
-  background: #fff;
-  border-bottom: 1px solid #e4e7ed;
+  background: hsl(var(--c-paper));
+  border-bottom: var(--border-cartoon);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  height: 62px;
 }
 .brand {
-  font-weight: 600;
-  font-size: 16px;
-  cursor: pointer;
-}
-.user {
+  font-weight: 700;
+  font-size: 18px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 12px;
+  gap: 8px;
 }
+.brand-icon {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  background: hsl(var(--c-yellow) / .5);
+  border: 2px solid hsl(var(--c-ink));
+  border-radius: 12px;
+  box-shadow: 2px 2px 0 hsl(var(--c-ink) / .85);
+}
+.right { display: flex; align-items: center; gap: 10px; }
+.nav-btn { font-size: 15px; }
+.user-chip {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: hsl(var(--c-primary) / .12);
+  border: 2px solid hsl(var(--c-ink) / .8);
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+}
+.main { padding: 20px 28px; }
 </style>
