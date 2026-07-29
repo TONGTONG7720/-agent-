@@ -8,7 +8,8 @@ import java.util.Map;
 public interface AgentClient {
 
     void startTask(String taskId, String requirement, boolean autoMode,
-                   Map<String, String> roleModels, Map<String, String> rolePrompts);
+                   Map<String, String> roleModels, Map<String, String> rolePrompts,
+                   Map<String, Object> pipeline);
 
     void resume(String taskId, String decision, String comment, String target);
 

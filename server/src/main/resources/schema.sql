@@ -50,5 +50,11 @@ CREATE TABLE IF NOT EXISTS llm_model (
 CREATE TABLE IF NOT EXISTS agent_role_config (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   role VARCHAR(32) NOT NULL UNIQUE,
+  name VARCHAR(64),
+  kind VARCHAR(16) NOT NULL DEFAULT 'analysis',
+  ord INT NOT NULL DEFAULT 0,
+  enabled TINYINT NOT NULL DEFAULT 1,
+  has_gate TINYINT NOT NULL DEFAULT 0,
+  rework_target VARCHAR(32),
   system_prompt TEXT,
   default_model_id BIGINT);

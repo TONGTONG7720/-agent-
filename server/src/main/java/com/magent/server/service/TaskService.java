@@ -1,9 +1,12 @@
 package com.magent.server.service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.magent.server.common.BizException;
 import com.magent.server.entity.AgentRoleConfig;
 import com.magent.server.entity.LlmModel;
@@ -55,7 +58,8 @@ public class TaskService {
         }
 
         try {
-            agentClient.startTask(task.agentTaskId(), requirement, autoMode, roleModels, rolePrompts);
+            agentClient.startTask(task.agentTaskId(), requirement, autoMode, roleModels, rolePrompts,
+                    buildPipelineSpec());
         } catch (Exception e) {
             task.setStatus("failed");
             taskMapper.updateById(task);
@@ -64,6 +68,53 @@ public class TaskService {
         task.setStatus("running");
         taskMapper.updateById(task);
         return task;
+    }
+
+    /** 默认五角色流水线签名（role:kind:gate:rework），与之一致则不传 pipeline。 */
+    private static final List<String> DEFAULT_SIG = List.of(
+            "pm:analysis:1:", "architect:analysis:1:", "coder:code:0:",
+            "tester:test:0:", "reviewer:review:0:coder");
+
+    /** 从启用角色按 ord 组装 pipeline spec；与默认五角色完全一致时返回 null（走旧图）。 */
+    private Map<String, Object> buildPipelineSpec() {
+        List<AgentRoleConfig> roles = roleConfigMapper.selectList(
+                new QueryWrapper<AgentRoleConfig>().orderByAsc("ord", "id"));
+        List<AgentRoleConfig> enabled = new ArrayList<>();
+        List<String> sig = new ArrayList<>();
+        for (AgentRoleConfig r : roles) {
+            if (Boolean.FALSE.equals(r.getEnabled())) {
+                continue;
+            }
+            enabled.add(r);
+            sig.add(r.getRole() + ":" + nz(r.getKind(), "analysis") + ":"
+                    + (Boolean.TRUE.equals(r.getHasGate()) ? 1 : 0) + ":" + nz(r.getReworkTarget(), ""));
+        }
+        if (sig.equals(DEFAULT_SIG)) {
+            return null;
+        }
+        List<Map<String, Object>> steps = new ArrayList<>();
+        for (AgentRoleConfig r : enabled) {
+            Map<String, Object> step = new HashMap<>();
+            step.put("key", r.getRole());
+            step.put("name", nz(r.getName(), r.getRole()));
+            step.put("kind", nz(r.getKind(), "analysis"));
+            step.put("gate", Boolean.TRUE.equals(r.getHasGate()));
+            if (r.getReworkTarget() != null && !r.getReworkTarget().isBlank()) {
+                step.put("rework_target", r.getReworkTarget());
+            }
+            if (r.getSystemPrompt() != null && !r.getSystemPrompt().isBlank()) {
+                step.put("system_prompt", r.getSystemPrompt());
+            }
+            steps.add(step);
+        }
+        Map<String, Object> spec = new HashMap<>();
+        spec.put("steps", steps);
+        spec.put("final_gate", true);
+        return spec;
+    }
+
+    private static String nz(String v, String dft) {
+        return (v == null || v.isBlank()) ? dft : v;
     }
 
     public Task getOrThrow(Long taskId) {

@@ -1,6 +1,11 @@
 package com.magent.server.config;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.util.List;
+import java.util.Map;
+
+import javax.sql.DataSource;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.magent.server.entity.AgentRoleConfig;
@@ -17,26 +22,33 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
- * 幂等种子数据：admin 账号 + 默认模型(gpt-5.6-terra) + 五个 Agent 角色配置（全部绑定该默认模型）。
- * 替代 data.sql，因 BCrypt 哈希需运行期生成。
+ * 幂等种子数据：admin + 默认模型 + 默认五角色流水线；并对老库补齐流水线元数据列。
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements ApplicationRunner {
 
-    private static final List<String> AGENT_ROLES =
-            List.of("pm", "architect", "coder", "tester", "reviewer");
-    /** 默认模型名（须与 llm-gateway/litellm-config.yaml 中注册的 model_name 一致）。 */
     private static final String DEFAULT_MODEL_NAME = "gpt-5.6-terra";
+
+    /** 默认流水线：role, name, kind, ord, hasGate, reworkTarget */
+    private static final List<Object[]> DEFAULT_PIPELINE = List.of(
+            new Object[]{"pm", "产品经理", "analysis", 1, true, null},
+            new Object[]{"architect", "架构师", "analysis", 2, true, null},
+            new Object[]{"coder", "开发工程师", "code", 3, false, null},
+            new Object[]{"tester", "测试工程师", "test", 4, false, null},
+            new Object[]{"reviewer", "代码审查员", "review", 5, false, "coder"});
 
     private final SysUserMapper userMapper;
     private final AgentRoleConfigMapper roleConfigMapper;
     private final LlmModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
+    private final DataSource dataSource;
 
     @Override
     public void run(ApplicationArguments args) {
+        evolveSchema();
+
         if (userMapper.selectCount(new QueryWrapper<SysUser>().eq("username", "admin")) == 0) {
             SysUser admin = new SysUser();
             admin.setUsername("admin");
@@ -48,24 +60,75 @@ public class DataInitializer implements ApplicationRunner {
 
         Long defaultModelId = ensureDefaultModel();
 
-        for (String role : AGENT_ROLES) {
+        for (Object[] p : DEFAULT_PIPELINE) {
+            String role = (String) p[0];
             AgentRoleConfig rc = roleConfigMapper.selectOne(
                     new QueryWrapper<AgentRoleConfig>().eq("role", role));
             if (rc == null) {
                 rc = new AgentRoleConfig();
                 rc.setRole(role);
-                rc.setDefaultModelId(defaultModelId);   // 新建即绑定默认模型
-                // systemPrompt 留空 = 使用 Agent 服务内置默认 prompt
-                roleConfigMapper.insert(rc);
-            } else if (rc.getDefaultModelId() == null) {
-                // 已存在但未指定模型：回填为默认模型（与运行时兼底一致，仅让 UI 显式可见）
                 rc.setDefaultModelId(defaultModelId);
+            }
+            // 幂等补齐流水线元数据（老库 role 已存在但字段为空时回填）
+            if (rc.getName() == null) rc.setName((String) p[1]);
+            if (rc.getKind() == null) rc.setKind((String) p[2]);
+            if (rc.getOrd() == null) rc.setOrd((Integer) p[3]);
+            if (rc.getEnabled() == null) rc.setEnabled(true);
+            if (rc.getHasGate() == null) rc.setHasGate((Boolean) p[4]);
+            if (rc.getReworkTarget() == null) rc.setReworkTarget((String) p[5]);
+            if (rc.getDefaultModelId() == null) rc.setDefaultModelId(defaultModelId);
+            if (rc.getId() == null) {
+                roleConfigMapper.insert(rc);
+            } else {
                 roleConfigMapper.updateById(rc);
             }
         }
     }
 
-    /** 确保默认模型已登记，返回其 id（幂等）。 */
+    /** 对已存在的老库补齐新列（元数据检查后 ALTER；H2/MySQL 通用）。 */
+    private void evolveSchema() {
+        Map<String, String> cols = Map.of(
+                "name", "VARCHAR(64)",
+                "kind", "VARCHAR(16) DEFAULT 'analysis'",
+                "ord", "INT DEFAULT 0",
+                "enabled", "TINYINT DEFAULT 1",
+                "has_gate", "TINYINT DEFAULT 0",
+                "rework_target", "VARCHAR(32)");
+        try (Connection conn = dataSource.getConnection()) {
+            for (Map.Entry<String, String> e : cols.entrySet()) {
+                if (!columnExists(conn, "agent_role_config", e.getKey())) {
+                    try (var st = conn.createStatement()) {
+                        st.execute("ALTER TABLE agent_role_config ADD COLUMN " + e.getKey() + " " + e.getValue());
+                        log.info("已为 agent_role_config 补列 {}", e.getKey());
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("schema evolve skipped: {}", ex.getMessage());
+        }
+    }
+
+    private boolean columnExists(Connection conn, String table, String column) throws Exception {
+        try (ResultSet rs = conn.getMetaData().getColumns(null, null, table, null)) {
+            while (rs.next()) {
+                String c = rs.getString("COLUMN_NAME");
+                if (c != null && c.equalsIgnoreCase(column)) {
+                    return true;
+                }
+            }
+        }
+        // 大写表名兜底（部分数据库大小写敏感）
+        try (ResultSet rs = conn.getMetaData().getColumns(null, null, table.toUpperCase(), null)) {
+            while (rs.next()) {
+                String c = rs.getString("COLUMN_NAME");
+                if (c != null && c.equalsIgnoreCase(column)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private Long ensureDefaultModel() {
         LlmModel model = modelMapper.selectOne(
                 new QueryWrapper<LlmModel>().eq("name", DEFAULT_MODEL_NAME));
@@ -74,7 +137,6 @@ public class DataInitializer implements ApplicationRunner {
             model.setName(DEFAULT_MODEL_NAME);
             model.setLitellmModelName(DEFAULT_MODEL_NAME);
             model.setEnabled(true);
-            // api_key 走网关配置，此处无需存储
             modelMapper.insert(model);
             log.info("已登记默认模型 {}", DEFAULT_MODEL_NAME);
         }
