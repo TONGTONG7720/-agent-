@@ -69,13 +69,22 @@ public class DataInitializer implements ApplicationRunner {
                 rc.setRole(role);
                 rc.setDefaultModelId(defaultModelId);
             }
-            // 幂等补齐流水线元数据（老库 role 已存在但字段为空时回填）
-            if (rc.getName() == null) rc.setName((String) p[1]);
-            if (rc.getKind() == null) rc.setKind((String) p[2]);
-            if (rc.getOrd() == null) rc.setOrd((Integer) p[3]);
-            if (rc.getEnabled() == null) rc.setEnabled(true);
-            if (rc.getHasGate() == null) rc.setHasGate((Boolean) p[4]);
-            if (rc.getReworkTarget() == null) rc.setReworkTarget((String) p[5]);
+            // 幂等补齐流水线元数据：ord==0/null 视为“未配置”（老库 ALTER 加列带 DEFAULT 0），戳默认值；
+            // 已配置（ord>=1）则仅补 null，不覆盖用户自定义排序/开关
+            boolean unconfigured = rc.getOrd() == null || rc.getOrd() == 0;
+            if (unconfigured) {
+                rc.setName((String) p[1]);
+                rc.setKind((String) p[2]);
+                rc.setOrd((Integer) p[3]);
+                rc.setEnabled(true);
+                rc.setHasGate((Boolean) p[4]);
+                rc.setReworkTarget((String) p[5]);
+            } else {
+                if (rc.getName() == null) rc.setName((String) p[1]);
+                if (rc.getKind() == null) rc.setKind((String) p[2]);
+                if (rc.getEnabled() == null) rc.setEnabled(true);
+                if (rc.getHasGate() == null) rc.setHasGate((Boolean) p[4]);
+            }
             if (rc.getDefaultModelId() == null) rc.setDefaultModelId(defaultModelId);
             if (rc.getId() == null) {
                 roleConfigMapper.insert(rc);
