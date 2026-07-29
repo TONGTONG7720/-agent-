@@ -45,6 +45,11 @@ public class HttpAgentClient implements AgentClient {
     }
 
     @Override
+    public void retry(String taskId, int afterSeq) {
+        post("/agent/tasks/" + taskId + "/retry", Map.of("after_seq", afterSeq));
+    }
+
+    @Override
     public void cancel(String taskId) {
         post("/agent/tasks/" + taskId + "/cancel", Map.of());
     }

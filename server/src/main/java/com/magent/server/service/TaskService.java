@@ -29,6 +29,7 @@ public class TaskService {
     private final AgentRoleConfigMapper roleConfigMapper;
     private final LlmModelMapper modelMapper;
     private final AgentClient agentClient;
+    private final TaskEventService eventService;
 
     public Task create(Long projectId, String requirement, boolean autoMode, Long userId) {
         Task task = new Task();
@@ -86,6 +87,15 @@ public class TaskService {
         Task task = getOrThrow(taskId);
         requireStatus(task, "waiting_review");
         agentClient.resume(task.agentTaskId(), decision, comment);
+        task.setStatus("running");
+        taskMapper.updateById(task);
+    }
+
+    /** 失败任务断点重试：仅 failed 可调；传已落库最大 seq 供 agent 续号。 */
+    public void retry(Long taskId) {
+        Task task = getOrThrow(taskId);
+        requireStatus(task, "failed");
+        agentClient.retry(task.agentTaskId(), eventService.maxSeq(taskId));
         task.setStatus("running");
         taskMapper.updateById(task);
     }

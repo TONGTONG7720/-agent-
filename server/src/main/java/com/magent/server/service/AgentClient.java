@@ -12,5 +12,8 @@ public interface AgentClient {
 
     void resume(String taskId, String decision, String comment);
 
+    /** 失败任务断点重试；afterSeq 为已落库最大事件序号，供 agent 续号防撞。 */
+    void retry(String taskId, int afterSeq);
+
     void cancel(String taskId);
 }

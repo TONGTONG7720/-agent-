@@ -94,6 +94,15 @@ public class TaskController {
         return Result.ok();
     }
 
+    @PostMapping("/{id}/retry")
+    public Result<Void> retry(@PathVariable Long id) {
+        taskService.retry(id);
+        if (props.isRelayEnabled()) {
+            relay.startRelay(id);   // 重试后重新订阅事件流
+        }
+        return Result.ok();
+    }
+
     @PostMapping("/{id}/cancel")
     public Result<Void> cancel(@PathVariable Long id) {
         taskService.cancel(id);

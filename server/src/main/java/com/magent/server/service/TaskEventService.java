@@ -28,4 +28,11 @@ public class TaskEventService {
         return eventMapper.selectList(new QueryWrapper<TaskEvent>()
                 .eq("task_id", taskId).gt("seq", afterSeq).orderByAsc("seq"));
     }
+
+    /** 已落库的最大事件序号（无事件返回 0）。 */
+    public int maxSeq(Long taskId) {
+        TaskEvent last = eventMapper.selectOne(new QueryWrapper<TaskEvent>()
+                .eq("task_id", taskId).orderByDesc("seq").last("limit 1"));
+        return last == null ? 0 : last.getSeq();
+    }
 }
