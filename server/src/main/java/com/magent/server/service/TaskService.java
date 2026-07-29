@@ -100,6 +100,13 @@ public class TaskService {
         taskMapper.updateById(task);
     }
 
+    /** 把产物推送到 Git 仓库：仅 done 可调，返回分支名（不改变任务状态）。 */
+    public String pushToGit(Long taskId, String repoUrl, String token) {
+        Task task = getOrThrow(taskId);
+        requireStatus(task, "done");
+        return agentClient.push(task.agentTaskId(), repoUrl, token);
+    }
+
     /** 失败任务断点重试：仅 failed 可调；传已落库最大 seq 供 agent 续号。 */
     public void retry(Long taskId) {
         Task task = getOrThrow(taskId);

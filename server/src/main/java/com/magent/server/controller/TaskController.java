@@ -51,6 +51,12 @@ public class TaskController {
     public record IterateRequest(@NotBlank String feedback) {
     }
 
+    public record PushRequest(@NotBlank String repoUrl, String token) {
+    }
+
+    public record PushResult(String branch) {
+    }
+
     @PostMapping
     public Result<Task> create(@Validated @RequestBody CreateTaskRequest req) {
         Task task = taskService.create(req.projectId(), req.requirement(),
@@ -120,5 +126,11 @@ public class TaskController {
     public Result<Void> cancel(@PathVariable Long id) {
         taskService.cancel(id);
         return Result.ok();
+    }
+
+    @PostMapping("/{id}/push")
+    public Result<PushResult> push(@PathVariable Long id,
+                                   @Validated @RequestBody PushRequest req) {
+        return Result.ok(new PushResult(taskService.pushToGit(id, req.repoUrl(), req.token())));
     }
 }

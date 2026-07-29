@@ -18,5 +18,8 @@ public interface AgentClient {
     /** 已完成任务的多轮迭代；基于现有产物增量修改。 */
     void iterate(String taskId, String feedback, int afterSeq);
 
+    /** 把任务产物推送到 Git 仓库新分支，返回分支名；token 可空且不落库。 */
+    String push(String taskId, String repoUrl, String token);
+
     void cancel(String taskId);
 }

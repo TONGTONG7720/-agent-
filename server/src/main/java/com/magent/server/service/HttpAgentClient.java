@@ -60,23 +60,37 @@ public class HttpAgentClient implements AgentClient {
     }
 
     @Override
+    public String push(String taskId, String repoUrl, String token) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("repo_url", repoUrl);
+        body.put("token", token);   // 可为 null
+        String resp = post("/agent/tasks/" + taskId + "/push", body);
+        try {
+            return om.readTree(resp).path("branch").asText();
+        } catch (Exception e) {
+            throw new BizException(502, "Agent推送响应解析失败");
+        }
+    }
+
+    @Override
     public void cancel(String taskId) {
         post("/agent/tasks/" + taskId + "/cancel", Map.of());
     }
 
-    private void post(String path, Object body) {
+    private String post(String path, Object body) {
         try {
             HttpRequest request = HttpRequest.newBuilder(
                             URI.create(props.getAgentBaseUrl() + path))
                     .header("Content-Type", "application/json")
                     .header("X-Internal-Token", props.getInternalToken())
-                    .timeout(Duration.ofSeconds(30))
+                    .timeout(Duration.ofSeconds(180))
                     .POST(HttpRequest.BodyPublishers.ofString(om.writeValueAsString(body)))
                     .build();
             HttpResponse<String> resp = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (resp.statusCode() < 200 || resp.statusCode() >= 300) {
                 throw new BizException(502, "Agent服务响应异常 " + resp.statusCode() + ": " + resp.body());
             }
+            return resp.body();
         } catch (BizException e) {
             throw e;
         } catch (Exception e) {

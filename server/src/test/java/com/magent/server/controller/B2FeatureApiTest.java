@@ -19,8 +19,10 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** 批次2：多轮迭代 + 审批定向回退透传。 */
@@ -95,5 +97,28 @@ class B2FeatureApiTest {
                         .content("{\"decision\":\"reject\",\"comment\":\"架构不行\",\"target\":\"architect\"}"))
                 .andExpect(status().isOk());
         verify(agentClient).resume("T" + t.getId(), "reject", "架构不行", "architect");
+    }
+
+    @Test
+    void pushDoneTaskReturnsBranch() throws Exception {
+        Task t = doneTask();
+        when(agentClient.push("T" + t.getId(), "https://github.com/u/r.git", "tok"))
+                .thenReturn("magent/T" + t.getId() + "-x");
+        mvc.perform(post("/api/tasks/" + t.getId() + "/push").header("satoken", token)
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"repoUrl\":\"https://github.com/u/r.git\",\"token\":\"tok\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.branch").value("magent/T" + t.getId() + "-x"));
+        // 推送不改变任务状态
+        assertThat(taskMapper.selectById(t.getId()).getStatus()).isEqualTo("done");
+    }
+
+    @Test
+    void pushNonDoneTaskIs409() throws Exception {
+        Task t = taskService.create(1L, "计算器", true, 1L);   // running
+        mvc.perform(post("/api/tasks/" + t.getId() + "/push").header("satoken", token)
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"repoUrl\":\"https://github.com/u/r.git\"}"))
+                .andExpect(status().isConflict());
     }
 }
