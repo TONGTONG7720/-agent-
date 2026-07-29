@@ -28,3 +28,7 @@ class StartTaskRequest(BaseModel):
 class ResumeRequest(BaseModel):
     decision: str                 # pass | reject
     comment: str = ""
+
+
+class RetryRequest(BaseModel):
+    after_seq: int | None = None  # server 已落库的最大事件序号，重试后 seq 从其之后续号

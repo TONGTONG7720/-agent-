@@ -8,7 +8,7 @@ from .graph.builder import build_graph
 from .llm import default_llm_factory
 from .runner import TaskManager
 from .sandbox import run_pytest
-from .schemas import ResumeRequest, StartTaskRequest
+from .schemas import ResumeRequest, RetryRequest, StartTaskRequest
 
 
 def check_token(x_internal_token: str = Header(default="")):
@@ -56,6 +56,16 @@ def create_app(manager: TaskManager | None = None) -> FastAPI:
         except KeyError:
             raise HTTPException(status_code=404, detail="task not found")
         return {"code": 0, "message": "resumed"}
+
+    @app.post("/agent/tasks/{task_id}/retry", dependencies=[Depends(check_token)])
+    async def retry(task_id: str, req: RetryRequest | None = None):
+        try:
+            manager.retry(task_id, req.after_seq if req else None)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="task not found")
+        except ValueError as e:
+            raise HTTPException(status_code=409, detail=str(e))
+        return {"code": 0, "message": "retrying"}
 
     @app.post("/agent/tasks/{task_id}/cancel", dependencies=[Depends(check_token)])
     async def cancel(task_id: str):

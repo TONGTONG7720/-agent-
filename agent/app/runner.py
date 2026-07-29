@@ -64,6 +64,25 @@ class TaskManager:
             raise KeyError(task_id)
         self._submit(task_id, Command(resume={"decision": decision, "comment": comment}))
 
+    def retry(self, task_id: str, after_seq: int | None = None):
+        """失败任务从最近 checkpoint 续跑（图输入 None = resume）。
+
+        after_seq：由 server 传入已落库的最大序号，保证重试后事件 seq 不回退
+        （server 端 (task_id, seq) 唯一键会静默丢弃重号事件）。
+        """
+        config = {"configurable": {"thread_id": task_id}}
+        snapshot = self.graph.get_state(config)
+        if not snapshot.values:
+            raise KeyError(task_id)
+        job = self.jobs.get(task_id)
+        if job and not job.done():
+            raise ValueError(f"task {task_id} already running")
+        self.queues.setdefault(task_id, queue.Queue())
+        if after_seq is not None:
+            with self._seq_lock:
+                self.seqs[task_id] = max(self.seqs.get(task_id, 0), after_seq)
+        self._submit(task_id, None)
+
     def cancel(self, task_id: str):
         job = self.jobs.get(task_id)
         if job and not job.done():
@@ -86,11 +105,10 @@ class TaskManager:
     def _cleanup(self, task_id: str):
         """终态事件被消费后释放 per-task 资源，避免长期运行无界增长。
 
-        注意不能在客户端断线时清理（任务可能还在跑，_emit 会找不到队列）。
+        注意：seqs 故意保留（单 int 占用可忽略），retry 需延续序号避免与已落库事件撞号；
+        也不能在客户端断线时清理队列（任务可能还在跑）。
         """
         self.queues.pop(task_id, None)
-        with self._seq_lock:
-            self.seqs.pop(task_id, None)
         self.jobs.pop(task_id, None)
 
     def _handle_node_end(self, task_id: str, node: str, out: dict):
