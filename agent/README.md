@@ -15,6 +15,19 @@ checkpoint 断点续跑。LLM 统一走 LiteLLM 网关的 OpenAI 兼容接口。
 | `AGENT_WORKSPACE_ROOT` | `./workspace` | 任务产物工作目录 |
 | `AGENT_MAX_FIX_ROUNDS` | `3` | Reviewer→Coder 返工上限 |
 | `AGENT_TEST_TIMEOUT_SECONDS` | `120` | 测试执行超时 |
+| `AGENT_SANDBOX_MODE` | `subprocess` | 测试执行隔离：`subprocess` 本机 / `docker` 容器（断网+限额） |
+| `AGENT_SANDBOX_IMAGE` | `magent-sandbox:latest` | docker 模式镜像 |
+| `AGENT_SANDBOX_MEMORY` / `AGENT_SANDBOX_CPUS` | `512m` / `1.0` | 容器资源限额 |
+
+### Docker 沙箱模式（可选，更安全）
+
+```powershell
+# 一次性构建沙箱镜像（需 Docker Desktop 运行中）
+docker build -t magent-sandbox:latest -f sandbox.Dockerfile .
+# 启用：.env 里设 AGENT_SANDBOX_MODE=docker 后重启 agent 服务
+```
+
+容器内断网、限内存/CPU，任务目录挂载为 /work；Docker 未运行时会报友好错误，改回 subprocess 即恢复。
 
 ## 启动
 

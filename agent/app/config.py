@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     mysql_dsn: str = ""                           # 空 = 内存 checkpointer
     max_fix_rounds: int = 3
     test_timeout_seconds: int = 120
+    # 测试执行沙箱：subprocess(默认，本机) | docker(容器隔离，需 Docker 运行中)
+    sandbox_mode: str = "subprocess"
+    sandbox_image: str = "magent-sandbox:latest"
+    sandbox_memory: str = "512m"
+    sandbox_cpus: str = "1.0"
 
 
 settings = Settings()
