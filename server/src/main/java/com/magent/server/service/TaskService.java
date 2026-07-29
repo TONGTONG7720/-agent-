@@ -33,6 +33,7 @@ public class TaskService {
     private final LlmModelMapper modelMapper;
     private final AgentClient agentClient;
     private final TaskEventService eventService;
+    private final KnowledgeService knowledgeService;
 
     public Task create(Long projectId, String requirement, boolean autoMode, Long userId) {
         Task task = new Task();
@@ -58,8 +59,9 @@ public class TaskService {
         }
 
         try {
+            String knowledge = knowledgeService.retrieve(requirement, 4, 2400);
             agentClient.startTask(task.agentTaskId(), requirement, autoMode, roleModels, rolePrompts,
-                    buildPipelineSpec());
+                    buildPipelineSpec(), knowledge.isBlank() ? null : knowledge);
         } catch (Exception e) {
             task.setStatus("failed");
             taskMapper.updateById(task);

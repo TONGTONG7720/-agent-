@@ -70,7 +70,7 @@ class TaskServiceTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, String>> prompts = ArgumentCaptor.forClass(Map.class);
         verify(agentClient).startTask(eq("T" + t.getId()), eq("做一个计算器"), eq(false),
-                models.capture(), prompts.capture(), any());
+                models.capture(), prompts.capture(), any(), any());
         assertThat(models.getValue()).containsEntry("coder", "deepseek-v3");
         assertThat(prompts.getValue()).containsEntry("coder", "自定义coder提示词");
     }
@@ -78,7 +78,7 @@ class TaskServiceTest {
     @Test
     void createMarksFailedWhenAgentUnreachable() {
         doThrow(new BizException(502, "agent down")).when(agentClient)
-                .startTask(anyString(), anyString(), anyBoolean(), anyMap(), anyMap(), any());
+                .startTask(anyString(), anyString(), anyBoolean(), anyMap(), anyMap(), any(), any());
         assertThatThrownBy(this::createOk).isInstanceOf(BizException.class);
         // 取最新一条（其他非事务测试可能残留旧任务）
         Task saved = taskMapper.selectList(

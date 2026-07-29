@@ -31,7 +31,7 @@ public class HttpAgentClient implements AgentClient {
     @Override
     public void startTask(String taskId, String requirement, boolean autoMode,
                           Map<String, String> roleModels, Map<String, String> rolePrompts,
-                          Map<String, Object> pipeline) {
+                          Map<String, Object> pipeline, String knowledge) {
         Map<String, Object> body = new HashMap<>();
         body.put("task_id", taskId);
         body.put("requirement", requirement);
@@ -39,6 +39,7 @@ public class HttpAgentClient implements AgentClient {
         body.put("role_models", roleModels);
         body.put("role_prompts", rolePrompts);
         body.put("pipeline", pipeline);   // null = 默认五角色图
+        body.put("knowledge", knowledge); // null/空 = 无知识库参考
         post("/agent/tasks", body);
     }
 

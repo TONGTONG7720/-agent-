@@ -9,7 +9,7 @@ public interface AgentClient {
 
     void startTask(String taskId, String requirement, boolean autoMode,
                    Map<String, String> roleModels, Map<String, String> rolePrompts,
-                   Map<String, Object> pipeline);
+                   Map<String, Object> pipeline, String knowledge);
 
     void resume(String taskId, String decision, String comment, String target);
 

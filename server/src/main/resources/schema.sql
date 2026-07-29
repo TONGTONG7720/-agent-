@@ -58,3 +58,9 @@ CREATE TABLE IF NOT EXISTS agent_role_config (
   rework_target VARCHAR(32),
   system_prompt TEXT,
   default_model_id BIGINT);
+
+CREATE TABLE IF NOT EXISTS knowledge_doc (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(128) NOT NULL,
+  content MEDIUMTEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);

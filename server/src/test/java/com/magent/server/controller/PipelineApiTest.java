@@ -79,7 +79,7 @@ class PipelineApiTest {
         Task t = taskService.create(1L, "计算器", true, 1L);
         ArgumentCaptor<Map<String, Object>> cap = ArgumentCaptor.forClass(Map.class);
         verify(agentClient).startTask(eq("T" + t.getId()), anyString(), anyBoolean(),
-                anyMap(), anyMap(), cap.capture());
+                anyMap(), anyMap(), cap.capture(), any());
         assertThat(cap.getValue()).isNull();   // 与默认一致 → 不传 pipeline，走旧图
     }
 
@@ -95,7 +95,7 @@ class PipelineApiTest {
         Task t = taskService.create(1L, "计算器", true, 1L);
         ArgumentCaptor<Map<String, Object>> cap = ArgumentCaptor.forClass(Map.class);
         verify(agentClient).startTask(eq("T" + t.getId()), anyString(), anyBoolean(),
-                anyMap(), anyMap(), cap.capture());
+                anyMap(), anyMap(), cap.capture(), any());
         Map<String, Object> spec = cap.getValue();
         assertThat(spec).isNotNull();
         var steps = (java.util.List<Map<String, Object>>) spec.get("steps");
