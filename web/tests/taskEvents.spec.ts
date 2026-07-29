@@ -81,4 +81,16 @@ describe('taskEvents store', () => {
     s.pushEvent(ev(5, 'task_done', null, { review_passed: true, input_tokens: 900, output_tokens: 90 }))
     expect(s.tokenUsage).toEqual({ input: 900, output: 90 })
   })
+
+  it('新一轮事件到来时复位终态（多轮迭代/重试场景）', () => {
+    const s = useTaskEventsStore()
+    s.pushEvent(ev(1, 'task_done', null, { review_passed: true }))
+    expect(s.finished).toBe(true)
+    // 迭代开始：coder 新事件到来 → 不再是终态
+    s.pushEvent(ev(2, 'agent_message', 'coder', { content: '改代码' }))
+    expect(s.finished).toBe(false)
+    expect(s.failed).toBe(false)
+    s.pushEvent(ev(3, 'task_done', null, { review_passed: true }))
+    expect(s.finished).toBe(true)
+  })
 })

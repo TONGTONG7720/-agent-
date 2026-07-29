@@ -84,6 +84,11 @@
     </el-dialog>
 
     <el-dialog v-model="taskDlg" :title="`发起任务 · ${currentProject?.name ?? ''}`" width="560px">
+      <div class="tpl-row">
+        <span class="tpl-label">模板：</span>
+        <el-button v-for="t in TEMPLATES" :key="t.name" size="small" class="tpl-btn"
+                   @click="requirement = t.content">{{ t.name }}</el-button>
+      </div>
       <el-input v-model="requirement" type="textarea" :rows="5"
                 placeholder="描述你想做什么，例如：写一个Python计算器，支持加减乘除和括号" />
       <div style="margin-top:12px">
@@ -115,6 +120,26 @@ const currentProject = ref<Project | null>(null)
 const requirement = ref('')
 const autoMode = ref(false)
 const creating = ref(false)
+
+/** 需求模板库：一键填充常见任务描述 */
+const TEMPLATES = [
+  {
+    name: 'REST接口',
+    content: '用 Python FastAPI 实现一个图书管理 REST 接口：支持图书的增删改查，字段含书名/作者/ISBN/库存；用内存存储；含参数校验与异常处理。'
+  },
+  {
+    name: '爬虫脚本',
+    content: '写一个 Python 爬虫：抓取指定网页的标题和正文文字，支持重试与超时，结果存为 JSON 文件；遵守 robots，频率限制可配置。'
+  },
+  {
+    name: 'CLI工具',
+    content: '用 Python 写一个命令行待办清单工具：支持添加/完成/删除/列表，数据存本地 JSON，命令行参数用 argparse，有友好的帮助信息。'
+  },
+  {
+    name: '数据处理',
+    content: '写一个 Python 脚本：读取 CSV 文件，按指定列分组统计（计数/求和/均值），输出结果 CSV；处理缺失值与编码问题，带单元测试。'
+  }
+]
 
 const stats = computed(() => [
   { label: '项目', value: projects.value.length, icon: FolderOpened, color: 'violet' },
@@ -193,6 +218,15 @@ onMounted(load)
 
 <style scoped>
 .proj-name { font-size: 16px; }
+.tpl-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.tpl-label { font-size: 13px; color: hsl(250 12% 55%); }
+.tpl-btn { border-style: dashed !important; }
 .proj-meta {
   font-size: 12px;
   color: hsl(250 12% 55%);

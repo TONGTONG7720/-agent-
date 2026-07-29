@@ -52,6 +52,20 @@ export const GATE_TEXT: Record<string, string> = {
   accept_gate: '请最终验收'
 }
 
+/** 各人审门驳回时可选的回退目标（第一项为默认）。 */
+export const GATE_REJECT_TARGETS: Record<string, { value: string; label: string }[]> = {
+  prd_gate: [],
+  design_gate: [
+    { value: 'architect', label: '重做设计（默认）' },
+    { value: 'pm', label: '回退到需求' }
+  ],
+  accept_gate: [
+    { value: 'coder', label: '回退到开发（默认）' },
+    { value: 'architect', label: '回退到设计' },
+    { value: 'pm', label: '回退到需求' }
+  ]
+}
+
 export const ARTIFACT_TYPE_TEXT: Record<string, string> = {
   prd: 'PRD',
   design: '设计',

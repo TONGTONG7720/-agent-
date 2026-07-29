@@ -80,10 +80,23 @@
         <el-card v-if="store.pendingGate" class="gate-card pop-in">
           <template #header>{{ GATE_TEXT[store.pendingGate.gate] ?? store.pendingGate.question }}</template>
           <el-input v-model="comment" type="textarea" :rows="3" placeholder="审批意见（驳回时必填）" />
+          <el-select v-if="rejectOptions.length" v-model="rejectTarget" size="small"
+                     style="width:100%;margin-top:10px" placeholder="驳回后回退到…">
+            <el-option v-for="o in rejectOptions" :key="o.value" :value="o.value" :label="o.label" />
+          </el-select>
           <div style="margin-top:14px;display:flex;gap:10px">
             <el-button type="success" style="flex:1" :loading="approving" @click="onApprove('pass')">通过</el-button>
             <el-button type="danger" style="flex:1" :loading="approving" @click="onApprove('reject')">驳回</el-button>
           </div>
+        </el-card>
+
+        <!-- 多轮迭代：完成后可继续提修改意见 -->
+        <el-card v-if="task.status === 'done'" class="iterate-card pop-in">
+          <template #header>继续迭代</template>
+          <el-input v-model="iterateFeedback" type="textarea" :rows="3"
+                    placeholder="对当前产物提出修改意见，例如：把除法改成返回分数" />
+          <el-button type="primary" style="width:100%;margin-top:12px" :loading="iterating"
+                     @click="onIterate">让小队继续修改</el-button>
         </el-card>
 
         <el-card :style="store.pendingGate ? 'margin-top:20px' : ''">
@@ -124,7 +137,7 @@ import DOMPurify from 'dompurify'
 import { api, type Artifact, type Task } from '../api'
 import { getToken } from '../api/http'
 import { useTaskEventsStore } from '../stores/taskEvents'
-import { AGENT_META, AGENT_ORDER, ARTIFACT_TYPE_TEXT, GATE_TEXT, statusClass, statusText } from '../utils/status'
+import { AGENT_META, AGENT_ORDER, ARTIFACT_TYPE_TEXT, GATE_REJECT_TARGETS, GATE_TEXT, statusClass, statusText } from '../utils/status'
 
 const route = useRoute()
 const router = useRouter()
@@ -137,6 +150,9 @@ const approving = ref(false)
 const loading = ref(true)
 const streamBody = ref<HTMLElement>()
 const retrying = ref(false)
+const iterating = ref(false)
+const iterateFeedback = ref('')
+const rejectTarget = ref('')
 const previewOpen = ref(false)
 const previewName = ref('')
 const previewContent = ref('')
@@ -144,6 +160,12 @@ const previewIsMd = ref(false)
 
 const zipUrl = computed(() =>
   `/api/tasks/${taskId}/artifacts/zip?satoken=${encodeURIComponent(getToken())}`)
+
+const rejectOptions = computed(() =>
+  store.pendingGate ? (GATE_REJECT_TARGETS[store.pendingGate.gate] ?? []) : [])
+
+const isLive = computed(() =>
+  task.value ? ['running', 'waiting_review'].includes(task.value.status) : false)
 
 const isTerminal = computed(() =>
   task.value ? ['done', 'failed', 'canceled'].includes(task.value.status) : false)
@@ -175,7 +197,7 @@ async function onRetry() {
   try {
     await api.retryTask(taskId)
     await refreshTask()
-    await store.connect(taskId)   // 重新订阅事件流（含历史补拉）
+    await store.connect(taskId, true)   // 重试后强制订阅
     ElMessage.success('已从断点继续执行')
   } catch (e) {
     ElMessage.error((e as Error).message)
@@ -211,14 +233,35 @@ async function onApprove(decision: 'pass' | 'reject') {
   }
   approving.value = true
   try {
-    await api.approve(taskId, decision, comment.value.trim())
+    await api.approve(taskId, decision, comment.value.trim(),
+      decision === 'reject' && rejectTarget.value ? rejectTarget.value : undefined)
     store.clearGate()
     comment.value = ''
+    rejectTarget.value = ''
     await refreshTask()
   } catch (e) {
     ElMessage.error((e as Error).message)
   } finally {
     approving.value = false
+  }
+}
+
+async function onIterate() {
+  if (!iterateFeedback.value.trim()) {
+    ElMessage.warning('请填写修改意见')
+    return
+  }
+  iterating.value = true
+  try {
+    await api.iterateTask(taskId, iterateFeedback.value.trim())
+    iterateFeedback.value = ''
+    await refreshTask()
+    await store.connect(taskId, true)   // 新一轮强制订阅
+    ElMessage.success('小队已开始新一轮修改')
+  } catch (e) {
+    ElMessage.error((e as Error).message)
+  } finally {
+    iterating.value = false
   }
 }
 
@@ -244,7 +287,7 @@ watch(() => store.events.length, async () => {
 
 onMounted(async () => {
   await refreshTask()
-  await store.connect(taskId)
+  await store.connect(taskId, isLive.value)   // 任务未终止则强制订阅（历史含旧终态也照连）
   loading.value = false
 })
 
@@ -331,6 +374,11 @@ onUnmounted(() => store.disconnect())
 .gate-card :deep(.el-card__header) {
   background: hsl(var(--c-yellow) / .16);
 }
+.iterate-card :deep(.el-card__header) {
+  background: hsl(var(--c-primary) / .1);
+}
+.iterate-card { margin-top: 20px; }
+.iterate-card:first-child { margin-top: 0; }
 
 /* 产物 */
 .artifact-head { display: flex; justify-content: space-between; align-items: center; }

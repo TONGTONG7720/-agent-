@@ -101,6 +101,12 @@ export const useTaskEventsStore = defineStore('taskEvents', {
           this.failed = true
           this.pendingGate = null
           break
+        default:
+          // 新一轮工作事件到来（迭代/重试/resume 后）：从终态复位为进行中
+          if (this.finished) {
+            this.finished = false
+            this.failed = false
+          }
       }
     },
 
@@ -109,15 +115,18 @@ export const useTaskEventsStore = defineStore('taskEvents', {
       this.pendingGate = null
     },
 
-    /** 进入工作台：先补历史，再接 SSE；断线自动重连并按 maxSeq 补拉。 */
-    async connect(taskId: number) {
+    /** 进入工作台：先补历史，再接 SSE；断线自动重连并按 maxSeq 补拉。
+     * forceLive：任务实际未终止时强制订阅（历史里有旧 task_done 也照连，支持迭代/重试）。 */
+    async connect(taskId: number, forceLive = false) {
       this.reset()
       this.taskId = taskId
       const history = await api.listEvents(taskId, 0)
       this.mergeHistory(history)
-      if (this.finished) {
+      if (this.finished && !forceLive) {
         return
       }
+      this.finished = false
+      this.failed = false
       this.openSource()
     },
 

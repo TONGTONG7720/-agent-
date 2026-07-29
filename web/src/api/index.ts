@@ -66,9 +66,11 @@ export const api = {
     http.post<Task>('/api/tasks', { projectId, requirement, autoMode }),
   listEvents: (taskId: number, afterSeq: number) =>
     http.get<TaskEventDto[]>(`/api/tasks/${taskId}/events?afterSeq=${afterSeq}`),
-  approve: (taskId: number, decision: 'pass' | 'reject', comment: string) =>
-    http.post<void>(`/api/tasks/${taskId}/approve`, { decision, comment }),
+  approve: (taskId: number, decision: 'pass' | 'reject', comment: string, target?: string) =>
+    http.post<void>(`/api/tasks/${taskId}/approve`, { decision, comment, target: target ?? null }),
   retryTask: (taskId: number) => http.post<void>(`/api/tasks/${taskId}/retry`),
+  iterateTask: (taskId: number, feedback: string) =>
+    http.post<void>(`/api/tasks/${taskId}/iterate`, { feedback }),
   cancelTask: (taskId: number) => http.post<void>(`/api/tasks/${taskId}/cancel`),
   listArtifacts: (taskId: number) => http.get<Artifact[]>(`/api/tasks/${taskId}/artifacts`),
   artifactContent: (id: number) => http.get<string>(`/api/artifacts/${id}/content`),
