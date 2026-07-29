@@ -8,7 +8,7 @@ from .graph.builder import build_graph
 from .llm import default_llm_factory
 from .runner import TaskManager
 from .sandbox import run_pytest
-from .schemas import ResumeRequest, RetryRequest, StartTaskRequest
+from .schemas import IterateRequest, ResumeRequest, RetryRequest, StartTaskRequest
 
 
 def check_token(x_internal_token: str = Header(default="")):
@@ -52,10 +52,20 @@ def create_app(manager: TaskManager | None = None) -> FastAPI:
     @app.post("/agent/tasks/{task_id}/resume", dependencies=[Depends(check_token)])
     async def resume(task_id: str, req: ResumeRequest):
         try:
-            manager.resume(task_id, req.decision, req.comment)
+            manager.resume(task_id, req.decision, req.comment, req.target)
         except KeyError:
             raise HTTPException(status_code=404, detail="task not found")
         return {"code": 0, "message": "resumed"}
+
+    @app.post("/agent/tasks/{task_id}/iterate", dependencies=[Depends(check_token)])
+    async def iterate(task_id: str, req: IterateRequest):
+        try:
+            manager.iterate(task_id, req.feedback, req.after_seq)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="task not found")
+        except ValueError as e:
+            raise HTTPException(status_code=409, detail=str(e))
+        return {"code": 0, "message": "iterating"}
 
     @app.post("/agent/tasks/{task_id}/retry", dependencies=[Depends(check_token)])
     async def retry(task_id: str, req: RetryRequest | None = None):

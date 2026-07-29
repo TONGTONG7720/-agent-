@@ -28,6 +28,12 @@ class StartTaskRequest(BaseModel):
 class ResumeRequest(BaseModel):
     decision: str                 # pass | reject
     comment: str = ""
+    target: str | None = None     # 驳回定向回退目标（pm/architect/coder，缺省按门默认）
+
+
+class IterateRequest(BaseModel):
+    feedback: str                 # 多轮迭代的修改意见
+    after_seq: int | None = None
 
 
 class RetryRequest(BaseModel):

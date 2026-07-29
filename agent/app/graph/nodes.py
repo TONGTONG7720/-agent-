@@ -29,7 +29,7 @@ def make_pm_node(llm_factory):
         if state.get("human_feedback"):
             content += f"\n\n人审驳回意见：{state['human_feedback']}"
         reply, tokens = _call(llm_factory, "pm", state, content)
-        return {"prd": reply, "human_feedback": "", **tokens}
+        return {"prd": reply, "human_feedback": "", "reject_target": "", **tokens}
     return pm
 
 
@@ -39,17 +39,28 @@ def make_architect_node(llm_factory):
         if state.get("human_feedback"):
             content += f"\n\n人审驳回意见：{state['human_feedback']}"
         reply, tokens = _call(llm_factory, "architect", state, content)
-        return {"design_doc": reply, "human_feedback": "", **tokens}
+        return {"design_doc": reply, "human_feedback": "", "reject_target": "", **tokens}
     return architect
 
 
 def make_coder_node(llm_factory):
     def coder(state: GraphState) -> dict:
-        content = f"设计文档：\n{state['design_doc']}"
-        if state.get("review_comments"):
-            content += f"\n\n上一轮审查意见（必须修复）：{state['review_comments']}"
+        if state.get("iterate_feedback"):
+            # 多轮迭代：基于现有代码增量修改
+            code_text = "\n\n".join(f"# {f['path']}\n{f['content']}"
+                                    for f in state.get("code_files", []))
+            content = (f"现有代码：\n{code_text}\n\n"
+                       f"用户新反馈（请在现有代码基础上增量修改，输出全部文件）："
+                       f"{state['iterate_feedback']}")
+        else:
+            content = f"设计文档：\n{state['design_doc']}"
+            if state.get("review_comments"):
+                content += f"\n\n上一轮审查意见（必须修复）：{state['review_comments']}"
+            if state.get("human_feedback"):
+                content += f"\n\n终审驳回意见（必须修复）：{state['human_feedback']}"
         reply, tokens = _call(llm_factory, "coder", state, content)
-        return {"code_files": parse_code_blocks(reply), **tokens}
+        return {"code_files": parse_code_blocks(reply), "iterate_feedback": "",
+                "human_feedback": "", "reject_target": "", **tokens}
     return coder
 
 
@@ -79,14 +90,15 @@ def make_reviewer_node(llm_factory):
 
 
 def make_human_gate(gate_name: str, question: str):
-    """人审门节点：auto_mode 直接放行；否则 interrupt 等待 resume。"""
+    """人审门节点：auto_mode 直接放行；否则 interrupt 等待 resume（可带定向回退 target）。"""
     def gate(state: GraphState) -> dict:
         if state.get("auto_mode"):
-            return {"human_feedback": ""}
+            return {"human_feedback": "", "reject_target": ""}
         decision = interrupt({"gate": gate_name, "question": question,
                               "payload": {"prd": state.get("prd", ""),
                                           "design_doc": state.get("design_doc", "")}})
         if decision.get("decision") == "reject":
-            return {"human_feedback": decision.get("comment", "驳回")}
-        return {"human_feedback": ""}
+            return {"human_feedback": decision.get("comment", "驳回"),
+                    "reject_target": decision.get("target") or ""}
+        return {"human_feedback": "", "reject_target": ""}
     return gate

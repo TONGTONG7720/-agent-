@@ -21,6 +21,8 @@ class GraphState(TypedDict, total=False):
     review_passed: bool
     iteration_count: int          # Reviewer→Coder 返工轮数
     human_feedback: str           # 人审驳回意见，回传给上游节点
+    reject_target: str            # 定向回退目标角色（pm/architect/coder）
+    iterate_feedback: str         # 完成后的多轮迭代修改意见（直接进 coder）
     input_tokens: int             # 全图累计 token 用量（读 usage_metadata）
     output_tokens: int
 

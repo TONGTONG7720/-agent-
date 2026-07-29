@@ -59,10 +59,11 @@ class TaskManager:
                    "role_models": req.role_models, "role_prompts": req.role_prompts}
         self._submit(req.task_id, payload)
 
-    def resume(self, task_id: str, decision: str, comment: str):
+    def resume(self, task_id: str, decision: str, comment: str, target: str | None = None):
         if task_id not in self.queues:
             raise KeyError(task_id)
-        self._submit(task_id, Command(resume={"decision": decision, "comment": comment}))
+        self._submit(task_id, Command(resume={
+            "decision": decision, "comment": comment, "target": target}))
 
     def retry(self, task_id: str, after_seq: int | None = None):
         """失败任务从最近 checkpoint 续跑（图输入 None = resume）。
@@ -82,6 +83,25 @@ class TaskManager:
             with self._seq_lock:
                 self.seqs[task_id] = max(self.seqs.get(task_id, 0), after_seq)
         self._submit(task_id, None)
+
+    def iterate(self, task_id: str, feedback: str, after_seq: int | None = None):
+        """已完成任务的多轮迭代：注入反馈重新 invoke，条件入口直达 coder。
+
+        新输入与 checkpoint 状态合并（prd/design/code 保留）；返工额度重置。
+        """
+        config = {"configurable": {"thread_id": task_id}}
+        snapshot = self.graph.get_state(config)
+        if not snapshot.values:
+            raise KeyError(task_id)
+        job = self.jobs.get(task_id)
+        if job and not job.done():
+            raise ValueError(f"task {task_id} already running")
+        self.queues.setdefault(task_id, queue.Queue())
+        if after_seq is not None:
+            with self._seq_lock:
+                self.seqs[task_id] = max(self.seqs.get(task_id, 0), after_seq)
+        self._submit(task_id, {"iterate_feedback": feedback, "iteration_count": 0,
+                               "review_passed": False, "review_comments": ""})
 
     def cancel(self, task_id: str):
         job = self.jobs.get(task_id)
