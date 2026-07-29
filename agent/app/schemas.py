@@ -23,6 +23,7 @@ class StartTaskRequest(BaseModel):
     auto_mode: bool = False
     role_models: dict[str, str] = Field(default_factory=dict)
     role_prompts: dict[str, str] = Field(default_factory=dict)  # 覆盖默认 prompt，可空
+    pipeline: dict | None = None                                # 自定义流水线 spec（缺省用默认五角色）
 
 
 class ResumeRequest(BaseModel):

@@ -6,6 +6,7 @@ from fastapi.responses import StreamingResponse
 from .config import settings
 from .gitops import push_task
 from .graph.builder import build_graph
+from .graph.pipeline import build_pipeline_graph
 from .llm import default_llm_factory
 from .runner import TaskManager
 from .sandbox import run_pytest
@@ -32,7 +33,11 @@ def create_app(manager: TaskManager | None = None) -> FastAPI:
     app = FastAPI(title="Multi-Agent Dev Service")
     if manager is None:
         graph = build_graph(default_llm_factory, get_checkpointer(), run_pytest)
-        manager = TaskManager(graph)
+
+        def pipeline_builder(spec):
+            return build_pipeline_graph(spec, default_llm_factory, get_checkpointer(), run_pytest)
+
+        manager = TaskManager(graph, pipeline_builder=pipeline_builder)
     app.state.manager = manager
 
     @app.post("/agent/tasks", dependencies=[Depends(check_token)])

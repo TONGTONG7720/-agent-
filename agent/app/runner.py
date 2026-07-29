@@ -27,8 +27,10 @@ class TaskManager:
     与 Web 服务器的事件循环解耦（TestClient 每请求独立循环、多 worker 场景下依然正确）。
     """
 
-    def __init__(self, graph):
+    def __init__(self, graph, pipeline_builder=None):
         self.graph = graph
+        self.pipeline_builder = pipeline_builder   # callable(spec) -> compiled graph
+        self.graphs: dict[str, object] = {}        # task_id -> 任务专属图（自定义流水线）
         self.queues: dict[str, queue.Queue] = {}
         self.seqs: dict[str, int] = {}
         self.jobs: dict[str, object] = {}     # concurrent.futures.Future
@@ -36,6 +38,10 @@ class TaskManager:
         self._loop = asyncio.new_event_loop()
         threading.Thread(target=self._loop.run_forever,
                          daemon=True, name="task-manager-loop").start()
+
+    def _graph_for(self, task_id: str):
+        """任务专属图（自定义流水线）优先，否则默认图。"""
+        return self.graphs.get(task_id, self.graph)
 
     def _emit(self, task_id: str, event: str, agent: str | None = None, data: dict | None = None):
         with self._seq_lock:
@@ -54,6 +60,8 @@ class TaskManager:
         if job and not job.done():
             raise ValueError(f"task {req.task_id} already running")
         self.queues.setdefault(req.task_id, queue.Queue())
+        if req.pipeline and self.pipeline_builder:
+            self.graphs[req.task_id] = self.pipeline_builder(req.pipeline)
         payload = {"task_id": req.task_id, "requirement": req.requirement,
                    "auto_mode": req.auto_mode, "iteration_count": 0,
                    "role_models": req.role_models, "role_prompts": req.role_prompts}
@@ -72,7 +80,7 @@ class TaskManager:
         （server 端 (task_id, seq) 唯一键会静默丢弃重号事件）。
         """
         config = {"configurable": {"thread_id": task_id}}
-        snapshot = self.graph.get_state(config)
+        snapshot = self._graph_for(task_id).get_state(config)
         if not snapshot.values:
             raise KeyError(task_id)
         job = self.jobs.get(task_id)
@@ -90,7 +98,7 @@ class TaskManager:
         新输入与 checkpoint 状态合并（prd/design/code 保留）；返工额度重置。
         """
         config = {"configurable": {"thread_id": task_id}}
-        snapshot = self.graph.get_state(config)
+        snapshot = self._graph_for(task_id).get_state(config)
         if not snapshot.values:
             raise KeyError(task_id)
         job = self.jobs.get(task_id)
@@ -148,6 +156,15 @@ class TaskManager:
             content = f"生成了 {len(out.get('code_files', []))} 个代码文件"
         if node == "reviewer":
             content = out.get("review_comments", "")
+        # 通用流水线：新增的文档产出当作 artifact + 消息（自定义分析/审查角色）
+        if "documents" in out and out.get("documents"):
+            newest = out["documents"][-1]
+            if newest["key"] not in _ARTIFACTS and node != "coder":
+                fname = f"{newest['key']}.md"
+                write_files(task_id, [{"path": fname, "content": newest["content"]}])
+                self._emit(task_id, "artifact_created", agent=node,
+                           data={"name": fname, "type": "doc", "path": fname})
+                content = newest["content"]
         if content:
             self._emit(task_id, "agent_message", agent=node,
                        data={"delta": content, "content": content})
@@ -159,9 +176,10 @@ class TaskManager:
 
     async def _run(self, task_id: str, payload):
         config = {"configurable": {"thread_id": task_id}}
+        graph = self._graph_for(task_id)
         try:
             interrupted = False
-            async for update in self.graph.astream(payload, config, stream_mode="updates"):
+            async for update in graph.astream(payload, config, stream_mode="updates"):
                 for node, out in update.items():
                     if node == "__interrupt__":
                         interrupted = True
@@ -169,7 +187,7 @@ class TaskManager:
                     else:
                         self._handle_node_end(task_id, node, out)
             if not interrupted:
-                state = self.graph.get_state(config).values
+                state = graph.get_state(config).values
                 self._emit(task_id, "task_done",
                            data={"review_passed": state.get("review_passed", False),
                                  "iteration_count": state.get("iteration_count", 0),
