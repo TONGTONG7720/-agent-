@@ -36,6 +36,31 @@ public class TaskService {
     private final KnowledgeService knowledgeService;
 
     public Task create(Long projectId, String requirement, boolean autoMode, Long userId) {
+        return createInternal(projectId, requirement, autoMode, userId, null);
+    }
+
+    /** 多模型对比：同需求双任务，各角色模型分别强制为 A/B，均 auto_mode。 */
+    public Map<String, Long> createComparison(Long projectId, String requirement,
+                                              Long userId, Long modelAId, Long modelBId) {
+        Task a = createInternal(projectId, requirement, true, userId, resolveLitellm(modelAId));
+        Task b = createInternal(projectId, requirement, true, userId, resolveLitellm(modelBId));
+        Map<String, Long> result = new HashMap<>();
+        result.put("taskAId", a.getId());
+        result.put("taskBId", b.getId());
+        return result;
+    }
+
+    private String resolveLitellm(Long modelId) {
+        LlmModel m = modelId == null ? null : modelMapper.selectById(modelId);
+        if (m == null || !Boolean.TRUE.equals(m.getEnabled())) {
+            throw new BizException(400, "模型不可用: " + modelId);
+        }
+        return m.getLitellmModelName();
+    }
+
+    /** 创建并启动任务；forcedModel 非空时将所有角色模型强制为该值（对比用）。 */
+    private Task createInternal(Long projectId, String requirement, boolean autoMode,
+                                Long userId, String forcedModel) {
         Task task = new Task();
         task.setProjectId(projectId);
         task.setRequirement(requirement);
@@ -47,7 +72,9 @@ public class TaskService {
         Map<String, String> roleModels = new HashMap<>();
         Map<String, String> rolePrompts = new HashMap<>();
         for (AgentRoleConfig rc : roleConfigMapper.selectList(null)) {
-            if (rc.getDefaultModelId() != null) {
+            if (forcedModel != null) {
+                roleModels.put(rc.getRole(), forcedModel);
+            } else if (rc.getDefaultModelId() != null) {
                 LlmModel m = modelMapper.selectById(rc.getDefaultModelId());
                 if (m != null && Boolean.TRUE.equals(m.getEnabled())) {
                     roleModels.put(rc.getRole(), m.getLitellmModelName());

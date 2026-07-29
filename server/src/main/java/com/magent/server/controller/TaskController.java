@@ -57,6 +57,10 @@ public class TaskController {
     public record PushResult(String branch) {
     }
 
+    public record CompareRequest(Long projectId, @NotBlank String requirement,
+                                 Long modelAId, Long modelBId) {
+    }
+
     @PostMapping
     public Result<Task> create(@Validated @RequestBody CreateTaskRequest req) {
         Task task = taskService.create(req.projectId(), req.requirement(),
@@ -132,5 +136,11 @@ public class TaskController {
     public Result<PushResult> push(@PathVariable Long id,
                                    @Validated @RequestBody PushRequest req) {
         return Result.ok(new PushResult(taskService.pushToGit(id, req.repoUrl(), req.token())));
+    }
+
+    @PostMapping("/compare")
+    public Result<java.util.Map<String, Long>> compare(@Validated @RequestBody CompareRequest req) {
+        return Result.ok(taskService.createComparison(req.projectId(), req.requirement(),
+                StpUtil.getLoginIdAsLong(), req.modelAId(), req.modelBId()));
     }
 }
