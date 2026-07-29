@@ -67,4 +67,18 @@ describe('taskEvents store', () => {
     expect(s.pendingGate).toBeNull()
     expect(s.maxSeq).toBe(0)
   })
+
+  it('tokenUsage 取事件流中最新的累计值（含乱序补拉）', () => {
+    const s = useTaskEventsStore()
+    expect(s.tokenUsage).toBeNull()
+    s.pushEvent(ev(4, 'node_end', 'architect', { node: 'architect', input_tokens: 300, output_tokens: 30 }))
+    s.mergeHistory([
+      ev(2, 'node_end', 'pm', { node: 'pm', input_tokens: 100, output_tokens: 10 }),
+      ev(3, 'agent_message', 'architect', { content: 'x' })
+    ])
+    // 最大 seq 的带 token 事件是 seq=4
+    expect(s.tokenUsage).toEqual({ input: 300, output: 30 })
+    s.pushEvent(ev(5, 'task_done', null, { review_passed: true, input_tokens: 900, output_tokens: 90 }))
+    expect(s.tokenUsage).toEqual({ input: 900, output: 90 })
+  })
 })

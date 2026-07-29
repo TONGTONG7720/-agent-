@@ -10,12 +10,17 @@
             <span class="meta-chip">{{ task.autoMode ? '全自动模式' : '人工审批模式' }}</span>
             <span v-if="task.currentNode" class="meta-chip">环节：{{ nodeLabel(task.currentNode) }}</span>
             <span class="meta-chip">创建于 {{ fmtTime(task.createdAt) }}</span>
+            <span v-if="store.tokenUsage" class="meta-chip">
+              消耗 {{ fmtTokens(store.tokenUsage.input + store.tokenUsage.output) }} tokens
+            </span>
           </div>
         </div>
       </div>
       <div class="head-right">
         <span v-if="task.status === 'running'" class="pulse-dot" />
         <span :class="statusClass(task.status)" style="font-size:14px">{{ statusText(task.status) }}</span>
+        <el-button v-if="task.status === 'failed'" type="primary" :loading="retrying"
+                   @click="onRetry">断点重试</el-button>
         <el-button v-if="!isTerminal" type="danger" @click="onCancel">取消任务</el-button>
       </div>
     </div>
@@ -82,17 +87,31 @@
         </el-card>
 
         <el-card :style="store.pendingGate ? 'margin-top:20px' : ''">
-          <template #header>任务产物（{{ artifacts.length }}）</template>
+          <template #header>
+            <div class="artifact-head">
+              <span>任务产物（{{ artifacts.length }}）</span>
+              <el-link v-if="artifacts.length" type="primary" :href="zipUrl" target="_blank">打包下载</el-link>
+            </div>
+          </template>
           <div v-if="artifacts.length === 0" class="no-artifact">还没有产出，敬请期待</div>
           <div v-for="a in artifacts" :key="a.id" class="artifact">
             <span class="artifact-name">
               <span class="type-chip">{{ ARTIFACT_TYPE_TEXT[a.type] ?? a.type }}</span>{{ a.name }}
             </span>
-            <el-link type="primary" :href="downloadUrl(a.id)" target="_blank">下载</el-link>
+            <span class="artifact-ops">
+              <el-link type="primary" @click="onPreview(a)">预览</el-link>
+              <el-link type="primary" :href="downloadUrl(a.id)" target="_blank">下载</el-link>
+            </span>
           </div>
         </el-card>
       </el-col>
     </el-row>
+
+    <!-- 产物预览抽屉 -->
+    <el-drawer v-model="previewOpen" :title="previewName" size="52%">
+      <div v-if="previewIsMd" class="md-body" v-html="renderMd(previewContent)" />
+      <pre v-else class="preview-code">{{ previewContent }}</pre>
+    </el-drawer>
   </div>
 </template>
 
@@ -117,6 +136,14 @@ const comment = ref('')
 const approving = ref(false)
 const loading = ref(true)
 const streamBody = ref<HTMLElement>()
+const retrying = ref(false)
+const previewOpen = ref(false)
+const previewName = ref('')
+const previewContent = ref('')
+const previewIsMd = ref(false)
+
+const zipUrl = computed(() =>
+  `/api/tasks/${taskId}/artifacts/zip?satoken=${encodeURIComponent(getToken())}`)
 
 const isTerminal = computed(() =>
   task.value ? ['done', 'failed', 'canceled'].includes(task.value.status) : false)
@@ -137,6 +164,35 @@ function nodeLabel(node: string): string {
 
 function fmtTime(s: string): string {
   return s ? s.slice(0, 16).replace('T', ' ') : ''
+}
+
+function fmtTokens(n: number): string {
+  return n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n)
+}
+
+async function onRetry() {
+  retrying.value = true
+  try {
+    await api.retryTask(taskId)
+    await refreshTask()
+    await store.connect(taskId)   // 重新订阅事件流（含历史补拉）
+    ElMessage.success('已从断点继续执行')
+  } catch (e) {
+    ElMessage.error((e as Error).message)
+  } finally {
+    retrying.value = false
+  }
+}
+
+async function onPreview(a: Artifact) {
+  try {
+    previewContent.value = await api.artifactContent(a.id)
+    previewName.value = a.name
+    previewIsMd.value = a.name.toLowerCase().endsWith('.md')
+    previewOpen.value = true
+  } catch (e) {
+    ElMessage.error((e as Error).message)
+  }
 }
 
 function downloadUrl(id: number): string {
@@ -277,6 +333,19 @@ onUnmounted(() => store.disconnect())
 }
 
 /* 产物 */
+.artifact-head { display: flex; justify-content: space-between; align-items: center; }
+.artifact-ops { display: inline-flex; gap: 10px; flex: none; }
+.preview-code {
+  background: hsl(220 35% 15%);
+  color: hsl(210 40% 96%);
+  padding: 14px 16px;
+  border-radius: 12px;
+  overflow: auto;
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
 .no-artifact { text-align: center; color: hsl(250 12% 55%); font-size: 13px; padding: 10px 0; }
 .artifact {
   display: flex;

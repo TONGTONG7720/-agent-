@@ -47,6 +47,16 @@ export const useTaskEventsStore = defineStore('taskEvents', {
         }
       }
       return ''
+    },
+    /** 最新的 token 累计用量（取带 input_tokens 的最大 seq 事件）。 */
+    tokenUsage(s): { input: number; output: number } | null {
+      for (let i = s.events.length - 1; i >= 0; i--) {
+        const d = dataOf(s.events[i])
+        if (d.input_tokens !== undefined) {
+          return { input: Number(d.input_tokens), output: Number(d.output_tokens ?? 0) }
+        }
+      }
+      return null
     }
   },
   actions: {

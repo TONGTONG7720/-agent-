@@ -68,8 +68,10 @@ export const api = {
     http.get<TaskEventDto[]>(`/api/tasks/${taskId}/events?afterSeq=${afterSeq}`),
   approve: (taskId: number, decision: 'pass' | 'reject', comment: string) =>
     http.post<void>(`/api/tasks/${taskId}/approve`, { decision, comment }),
+  retryTask: (taskId: number) => http.post<void>(`/api/tasks/${taskId}/retry`),
   cancelTask: (taskId: number) => http.post<void>(`/api/tasks/${taskId}/cancel`),
   listArtifacts: (taskId: number) => http.get<Artifact[]>(`/api/tasks/${taskId}/artifacts`),
+  artifactContent: (id: number) => http.get<string>(`/api/artifacts/${id}/content`),
 
   listModels: () => http.get<LlmModelView[]>('/api/models'),
   createModel: (name: string, litellmModelName: string, apiKey: string) =>
